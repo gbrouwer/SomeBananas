@@ -3,8 +3,14 @@ using UnityEngine;
 
 namespace StoatVsVole
 {
+    /// <summary>
+    /// Manages the grid-based positioning system for static agents (e.g., flowers).
+    /// Uses Perlin noise to create naturalistic clustering patterns.
+    /// </summary>
     public class CoverManager : MonoBehaviour
     {
+        #region Fields and Settings
+
         [Header("Ground Settings")]
         public GlobalSettings globalSettings;
         public GameObject ground;
@@ -12,9 +18,9 @@ namespace StoatVsVole
 
         [Range(0f, 1f)]
         public float spawnLowerBound = 0.25f;
-
         [Range(0f, 1f)]
         public float spawnUpperBound = 0.75f;
+
         public float cellSize = 2.0f;
 
         [Header("Perlin Noise Settings")]
@@ -38,8 +44,15 @@ namespace StoatVsVole
         private int gridHeight;
 
         private float[,] noiseMap;
-        private string[,] agentGrid; // Grid holding agentIDs (null = empty)
+        private string[,] agentGrid; // Holds agentIDs (null = empty)
 
+        #endregion
+
+        #region Unity Lifecycle
+
+        /// <summary>
+        /// Initializes the cover grid and places static objects according to noise patterns.
+        /// </summary>
         public void CreateCoverGrid(float agentSize)
         {
             if (useRandomSeed)
@@ -60,6 +73,10 @@ namespace StoatVsVole
             InitializeAvailablePositions(agentSize);
         }
 
+        #endregion
+
+        #region Grid and Noise Setup
+
         private void SetupGridBasedOnWorldSize()
         {
             if (globalSettings == null)
@@ -69,7 +86,6 @@ namespace StoatVsVole
             }
 
             float worldSize = globalSettings.worldSize;
-
             gridWidth = Mathf.CeilToInt(worldSize / cellSize);
             gridHeight = Mathf.CeilToInt(worldSize / cellSize);
 
@@ -81,6 +97,7 @@ namespace StoatVsVole
         {
             noiseOffsetX = Random.Range(0f, 10000f);
             noiseOffsetY = Random.Range(0f, 10000f);
+
             for (int x = 0; x < gridWidth; x++)
             {
                 for (int y = 0; y < gridHeight; y++)
@@ -89,6 +106,7 @@ namespace StoatVsVole
                     float frequency = 1f;
                     float noiseHeight = 0f;
                     float maxPossibleHeight = 0f;
+
                     for (int i = 0; i < octaves; i++)
                     {
                         float perlinX = ((float)x / gridWidth * noiseScale + noiseOffsetX) * frequency;
@@ -97,6 +115,7 @@ namespace StoatVsVole
                         float perlinValue = Mathf.PerlinNoise(perlinX, perlinY) * 2f - 1f;
                         noiseHeight += perlinValue * amplitude;
                         maxPossibleHeight += amplitude;
+
                         amplitude *= persistence;
                         frequency *= lacunarity;
                     }
@@ -109,7 +128,7 @@ namespace StoatVsVole
         private void GenerateDebugTexture()
         {
             Texture2D texture = new Texture2D(gridWidth, gridHeight);
-            texture.filterMode = FilterMode.Point; // Pixel perfect
+            texture.filterMode = FilterMode.Point;
 
             for (int x = 0; x < gridWidth; x++)
             {
@@ -117,7 +136,7 @@ namespace StoatVsVole
                 {
                     float value = noiseMap[x, y];
                     Color color = new Color(value, value, value);
-                    texture.SetPixel(x, y, color); // Flip vertically
+                    texture.SetPixel(x, y, color);
                 }
             }
 
@@ -129,6 +148,11 @@ namespace StoatVsVole
                 renderer.material.mainTexture = texture;
             }
         }
+
+        #endregion
+
+        #region Placement Logic
+
         public void InitializeAvailablePositions(float agentSize)
         {
             availableCells = new List<Vector2Int>();
@@ -151,118 +175,74 @@ namespace StoatVsVole
             }
         }
 
-  public bool TryPlaceAgent(string agentID, out Vector3 spawnPos)
-{
-    if (availableCells.Count == 0)
-    {
-        spawnPos = Vector3.zero;
-        return false;
-    }
-
-    Vector2Int selectedCell = availableCells[Random.Range(0, availableCells.Count)];
-    agentGrid[selectedCell.x, selectedCell.y] = agentID;
-    availableCells.Remove(selectedCell);
-
-    Vector3 basePosition = GridToWorldPosition(selectedCell.x, selectedCell.y);
-
-    float cellWidth = globalSettings.worldSize / gridWidth;
-    float cellHeight = globalSettings.worldSize / gridHeight;
-
-    float maxJitterX = (cellWidth / 2f) * jitterFraction;
-    float maxJitterZ = (cellHeight / 2f) * jitterFraction;
-
-    float jitterX = UnityEngine.Random.Range(-maxJitterX, maxJitterX);
-    float jitterZ = UnityEngine.Random.Range(-maxJitterZ, maxJitterZ);
-
-    spawnPos = new Vector3(
-        basePosition.x + jitterX,
-        basePosition.y,
-        basePosition.z + jitterZ
-    );
-
-    return true;
-}
-
-public bool TryPlaceNewAgentByNeighboringClustering(string agentID, out Vector3 spawnPos)
-{
-    List<Vector2Int> candidateCells = new List<Vector2Int>();
-
-    for (int x = 0; x < gridWidth; x++)
-    {
-        for (int y = 0; y < gridHeight; y++)
+        public bool TryPlaceAgent(string agentID, out Vector3 spawnPos)
         {
-            if (agentGrid[x, y] != null)
-                continue; // Already occupied
-
-            int neighborCount = 0;
-
-            Vector2Int[] neighborOffsets = new Vector2Int[]
+            if (availableCells.Count == 0)
             {
-                new Vector2Int(-1, 0),  // Left
-                new Vector2Int(1, 0),   // Right
-                new Vector2Int(0, -1),  // Down
-                new Vector2Int(0, 1),   // Up
-                new Vector2Int(-1, -1), // Down-Left
-                new Vector2Int(-1, 1),  // Up-Left
-                new Vector2Int(1, -1),  // Down-Right
-                new Vector2Int(1, 1)    // Up-Right
-            };
+                spawnPos = Vector3.zero;
+                return false;
+            }
 
-            foreach (var offset in neighborOffsets)
+            Vector2Int selectedCell = availableCells[Random.Range(0, availableCells.Count)];
+            agentGrid[selectedCell.x, selectedCell.y] = agentID;
+            availableCells.Remove(selectedCell);
+
+            spawnPos = JitteredWorldPosition(selectedCell);
+            return true;
+        }
+
+        public bool TryPlaceNewAgentByNeighboringClustering(string agentID, out Vector3 spawnPos)
+        {
+            List<Vector2Int> candidateCells = new List<Vector2Int>();
+
+            for (int x = 0; x < gridWidth; x++)
             {
-                int nx = x + offset.x;
-                int ny = y + offset.y;
-
-                if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight)
+                for (int y = 0; y < gridHeight; y++)
                 {
-                    if (agentGrid[nx, ny] != null)
-                    {
-                        neighborCount++;
+                    if (agentGrid[x, y] != null)
+                        continue;
 
-                        if (neighborCount >= minNeighborCount)
+                    int neighborCount = 0;
+                    Vector2Int[] neighborOffsets = {
+                        new Vector2Int(-1, 0), new Vector2Int(1, 0),
+                        new Vector2Int(0, -1), new Vector2Int(0, 1),
+                        new Vector2Int(-1, -1), new Vector2Int(-1, 1),
+                        new Vector2Int(1, -1), new Vector2Int(1, 1)
+                    };
+
+                    foreach (var offset in neighborOffsets)
+                    {
+                        int nx = x + offset.x;
+                        int ny = y + offset.y;
+
+                        if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight)
                         {
-                            candidateCells.Add(new Vector2Int(x, y));
-                            break; // Early exit
+                            if (agentGrid[nx, ny] != null)
+                            {
+                                neighborCount++;
+                                if (neighborCount >= minNeighborCount)
+                                {
+                                    candidateCells.Add(new Vector2Int(x, y));
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
             }
+
+            if (candidateCells.Count == 0)
+            {
+                Debug.LogWarning("CoverManager: No candidate cells found for neighbor-based placement!");
+                spawnPos = Vector3.zero;
+                return false;
+            }
+
+            Vector2Int selectedCell = candidateCells[Random.Range(0, candidateCells.Count)];
+            agentGrid[selectedCell.x, selectedCell.y] = agentID;
+            spawnPos = JitteredWorldPosition(selectedCell);
+            return true;
         }
-    }
-
-    if (candidateCells.Count == 0)
-    {
-        Debug.LogWarning("CoverManager: No candidate cells found for neighbor-based placement!");
-        spawnPos = Vector3.zero;
-        return false;
-    }
-
-    Vector2Int selectedCell = candidateCells[Random.Range(0, candidateCells.Count)];
-
-    agentGrid[selectedCell.x, selectedCell.y] = agentID;
-
-    Vector3 basePosition = GridToWorldPosition(selectedCell.x, selectedCell.y);
-
-    float cellWidth = globalSettings.worldSize / gridWidth;
-    float cellHeight = globalSettings.worldSize / gridHeight;
-
-    float maxJitterX = (cellWidth / 2f) * jitterFraction;
-    float maxJitterZ = (cellHeight / 2f) * jitterFraction;
-
-    float jitterX = UnityEngine.Random.Range(-maxJitterX, maxJitterX);
-    float jitterZ = UnityEngine.Random.Range(-maxJitterZ, maxJitterZ);
-
-    spawnPos = new Vector3(
-        basePosition.x + jitterX,
-        basePosition.y,
-        basePosition.z + jitterZ
-    );
-
-    return true;
-}
-
-
-
 
         public void RemoveAgent(string agentID)
         {
@@ -277,24 +257,12 @@ public bool TryPlaceNewAgentByNeighboringClustering(string agentID, out Vector3 
                     }
                 }
             }
-
             Debug.LogWarning($"GroundCoverManager: Tried to remove agent {agentID} but it wasn't found.");
         }
 
-        private Vector3 GridCellToWorldPosition(Vector2Int cell, float size)
-        {
+        #endregion
 
-            float jitterX = Random.Range(-cellSize * 0.04f, cellSize * 0.04f);
-            float jitterZ = Random.Range(-cellSize * 0.04f, cellSize * 0.04f);
-
-            Vector3 worldPos = new Vector3(
-                (cell.x + 0.5f) * cellSize + jitterX + ground.transform.position.x - (gridWidth * cellSize * 0.5f) - size * 0.5f,
-                ground.transform.position.y,
-                (cell.y + 0.5f) * cellSize + jitterZ + ground.transform.position.z - (gridHeight * cellSize * 0.5f) - size * 0.5f
-            );
-
-            return worldPos;
-        }
+        #region Utility
 
         private Vector3 GridToWorldPosition(int gridX, int gridY)
         {
@@ -309,13 +277,28 @@ public bool TryPlaceNewAgentByNeighboringClustering(string agentID, out Vector3 
             return new Vector3(worldX, 0f, worldZ);
         }
 
+        private Vector3 JitteredWorldPosition(Vector2Int cell)
+        {
+            Vector3 basePosition = GridToWorldPosition(cell.x, cell.y);
+
+            float cellWidth = globalSettings.worldSize / gridWidth;
+            float cellHeight = globalSettings.worldSize / gridHeight;
+
+            float maxJitterX = (cellWidth / 2f) * jitterFraction;
+            float maxJitterZ = (cellHeight / 2f) * jitterFraction;
+
+            float jitterX = Random.Range(-maxJitterX, maxJitterX);
+            float jitterZ = Random.Range(-maxJitterZ, maxJitterZ);
+
+            return new Vector3(basePosition.x + jitterX, basePosition.y, basePosition.z + jitterZ);
+        }
+
         private bool IsWithinSpawnBounds(Vector3 worldPos)
         {
             float halfWorldSize = globalSettings.worldSize / 2f;
 
             float lowerX = Mathf.Lerp(-halfWorldSize, halfWorldSize, spawnLowerBound);
             float upperX = Mathf.Lerp(-halfWorldSize, halfWorldSize, spawnUpperBound);
-
             float lowerZ = Mathf.Lerp(-halfWorldSize, halfWorldSize, spawnLowerBound);
             float upperZ = Mathf.Lerp(-halfWorldSize, halfWorldSize, spawnUpperBound);
 
@@ -323,28 +306,6 @@ public bool TryPlaceNewAgentByNeighboringClustering(string agentID, out Vector3 
                    worldPos.z >= lowerZ && worldPos.z <= upperZ;
         }
 
-
-        // private bool IsPositionWithinSpawnBounds(Vector3 position)
-        // {
-        //     Vector3 planeCenter = groundPlaneTransform.position;
-        //     Vector3 planeSize = new Vector3(
-        //         groundPlaneTransform.localScale.x * 10f,
-        //         0f,
-        //         groundPlaneTransform.localScale.z * 10f
-        //     );
-
-        //     float halfSizeX = planeSize.x / 2f;
-        //     float halfSizeZ = planeSize.z / 2f;
-
-        //     float xMin = planeCenter.x - halfSizeX + (planeSize.x * spawnLowerBound);
-        //     float xMax = planeCenter.x - halfSizeX + (planeSize.x * spawnUpperBound);
-        //     print(xMin);
-        //     float zMin = planeCenter.z - halfSizeZ + (planeSize.z * spawnLowerBound);
-        //     float zMax = planeCenter.z - halfSizeZ + (planeSize.z * spawnUpperBound);
-
-        //     return (position.x >= xMin && position.x <= xMax) &&
-        //            (position.z >= zMin && position.z <= zMax);
-        // }        
+        #endregion
     }
-
 }

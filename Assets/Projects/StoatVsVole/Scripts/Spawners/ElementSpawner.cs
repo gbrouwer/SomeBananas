@@ -2,8 +2,14 @@ using UnityEngine;
 
 namespace StoatVsVole
 {
+    /// <summary>
+    /// Spawns decorative, non-interactive environment elements across a plane or terrain surface.
+    /// Placement can be randomized, bounded, and aligned to procedural surfaces.
+    /// </summary>
     public class EnvironmentElementSpawner : MonoBehaviour
     {
+        #region Fields and Settings
+
         [Header("Spawn Settings")]
         public string resourceFolderPath;
         public int resolution = 32;
@@ -25,6 +31,13 @@ namespace StoatVsVole
         private GameObject[] prefabs;
         private Bounds bounds;
 
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Loads all prefabs from the specified resource folder path.
+        /// </summary>
         public void Prepare()
         {
             prefabs = Resources.LoadAll<GameObject>(resourceFolderPath);
@@ -34,6 +47,10 @@ namespace StoatVsVole
             }
         }
 
+        /// <summary>
+        /// Spawns environment elements based on noise, probability, and optional surface alignment.
+        /// </summary>
+        /// <param name="ground">Ground generator providing height information for alignment.</param>
         public void Spawn(EnvironmentGroundSpawner ground)
         {
             if (ground == null)
@@ -44,7 +61,6 @@ namespace StoatVsVole
 
             bounds = PlaneTransform.GetComponent<MeshRenderer>().bounds;
 
-            // bounds = PlaneTransform.GetComponent<MeshRenderer>().bounds;
             float stepX = bounds.size.x / resolution;
             float stepZ = bounds.size.z / resolution;
             float radius = Mathf.Min(bounds.size.x, bounds.size.z) * extent * 0.5f;
@@ -58,12 +74,14 @@ namespace StoatVsVole
                     float pz = bounds.min.z + stepZ * z + Random.Range(0, stepZ);
 
                     Vector3 spawnPosition = new Vector3(px, 0f, pz);
+
                     float noiseX = (float)x / resolution;
                     float noiseZ = (float)z / resolution;
                     float sample = Mathf.PerlinNoise(noiseX, noiseZ);
-
                     float randomThreshold = Random.value;
-                    if (randomThreshold > spawnProbability * sample) continue;
+
+                    if (randomThreshold > spawnProbability * sample)
+                        continue;
 
                     if (extent < 1f)
                     {
@@ -73,20 +91,17 @@ namespace StoatVsVole
                             continue;
                     }
 
-                    float py = alignToSurface ? ground.GetHeightAtWorldPosition(spawnPosition) : Random.Range(verticalRangeMin, verticalRangeMax);
-                    py = py + surfaceOffet;
+                    float py = alignToSurface
+                        ? ground.GetHeightAtWorldPosition(spawnPosition)
+                        : Random.Range(verticalRangeMin, verticalRangeMax);
+
+                    py += surfaceOffet;
                     spawnPosition.y = py;
 
                     GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
 
-                    if (prefab.GetComponentInChildren<UnityEngine.Canvas>() != null ||
-                        prefab.name.ToLower().Contains("debug") ||
-                        prefab.name.ToLower().Contains("overlay") ||
-                        prefab.name.ToLower().Contains("stats"))
-                    {
-                        // Debug.LogWarning($"[Spawner] Skipping debug-related prefab: {prefab.name}");
+                    if (IsDebugOrOverlayPrefab(prefab))
                         continue;
-                    }
 
                     GameObject instance = Instantiate(prefab, spawnPosition, Quaternion.identity, transform);
 
@@ -103,5 +118,23 @@ namespace StoatVsVole
                 }
             }
         }
+
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Determines if the prefab should be skipped because it's a debug, UI, or stats element.
+        /// </summary>
+        private bool IsDebugOrOverlayPrefab(GameObject prefab)
+        {
+            if (prefab.GetComponentInChildren<UnityEngine.Canvas>() != null)
+                return true;
+
+            string lowerName = prefab.name.ToLower();
+            return lowerName.Contains("debug") || lowerName.Contains("overlay") || lowerName.Contains("stats");
+        }
+
+        #endregion
     }
 }

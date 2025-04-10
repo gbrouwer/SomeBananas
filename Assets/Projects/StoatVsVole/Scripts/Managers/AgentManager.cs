@@ -4,29 +4,28 @@ using System.IO;
 
 namespace StoatVsVole
 {
+    /// <summary>
+    /// Manager class responsible for pooling, spawning, recycling, and overseeing the lifecycle of all agents.
+    /// Agents are autonomous; this manager only handles creation and placement logistics.
+    /// </summary>
     public class Manager : MonoBehaviour
     {
-        [Header(" Manager Settings")]
+        #region Fields and Settings
+
+        [Header("Manager Settings")]
         [Tooltip("Path to the agent preset JSON.")]
         private const string presetBasePath = "Assets/SomeBananas/Projects/StoatVsVole/Data/Presets/";
         public string PresetFile = "FlowerConfig.json";
 
-        // public GameObject groundObject;
         public int initialAgentCount = 100;
         public int poolSize = 200;
+        public float agentSize = 1.0f;
 
         private Transform agentParent;
         private List<GameObject> agentPool = new List<GameObject>();
         private List<IAgentLifecycle> activeAgents = new List<IAgentLifecycle>();
         private AgentDefinition agentDefinition;
-
-        public int PotentialPopulationCount { get; private set; }
-        public int ActiveCount => activeAgents.Count;
-        public float ReplicationFraction { get; private set; }
-        public float MeanAge { get; private set; }
-        public float agentSize = 1.0f;
-
-        string newAgentID;
+        private string newAgentID;
 
         [SerializeField]
         private AgentSpawner agentSpawner;
@@ -34,11 +33,18 @@ namespace StoatVsVole
         [SerializeField]
         private CoverManager coverManager;
 
-        private string GenerateUniqueAgentID()
-        {
-            return System.Guid.NewGuid().ToString();
-        }
+        public int PotentialPopulationCount { get; private set; }
+        public int ActiveCount => activeAgents.Count;
+        public float ReplicationFraction { get; private set; }
+        public float MeanAge { get; private set; }
 
+        #endregion
+
+        #region Unity Lifecycle
+
+        /// <summary>
+        /// Unity Awake. Initializes agent parent container and sets potential population.
+        /// </summary>
         private void Awake()
         {
             agentParent = new GameObject("Agents").transform;
@@ -46,20 +52,32 @@ namespace StoatVsVole
             PotentialPopulationCount = poolSize;
         }
 
+        /// <summary>
+        /// Unity Start. Loads agent definitions, creates the pool, and spawns initial agents.
+        /// </summary>
         private void Start()
         {
-
             coverManager.CreateCoverGrid(agentSize);
             LoadAgentDefinition();
             CreateAgentPool();
             SpawnInitialAgents();
         }
 
+        /// <summary>
+        /// Unity Update. Continuously updates mean age and replication metrics.
+        /// </summary>
         private void Update()
         {
             UpdateMeanAge();
         }
 
+        #endregion
+
+        #region Agent Pooling and Spawning
+
+        /// <summary>
+        /// Loads agent settings from a JSON definition file.
+        /// </summary>
         private void LoadAgentDefinition()
         {
             string path = Path.Combine(presetBasePath, PresetFile);
@@ -74,6 +92,9 @@ namespace StoatVsVole
             }
         }
 
+        /// <summary>
+        /// Creates an inactive pool of agent instances ready for spawning.
+        /// </summary>
         private void CreateAgentPool()
         {
             for (int i = 0; i < poolSize; i++)
@@ -90,6 +111,9 @@ namespace StoatVsVole
             }
         }
 
+        /// <summary>
+        /// Spawns the initial batch of agents into the environment.
+        /// </summary>
         private void SpawnInitialAgents()
         {
             for (int i = 0; i < initialAgentCount; i++)
@@ -99,6 +123,9 @@ namespace StoatVsVole
             }
         }
 
+        /// <summary>
+        /// Spawns an individual agent using an available pooled object.
+        /// </summary>
         private void SpawnAgent(string id)
         {
             GameObject agentObject = GetPooledAgent();
@@ -107,13 +134,12 @@ namespace StoatVsVole
                 IAgentLifecycle agentLifecycle = agentObject.GetComponent<IAgentLifecycle>();
                 if (agentLifecycle is AgentController Agent)
                 {
-                    Agent.InitializeFromDefinition(agentDefinition); // attaches definition + resets once
+                    Agent.InitializeFromDefinition(agentDefinition);
                     Agent.SetAgentID(id);
                     Agent.SetManager(this);
                     Agent.RandomizeMaxAge(100);
                     Agent.RandomizeReplicationAge(25);
                 }
-
 
                 Vector3 spawnPos;
                 if (coverManager.TryPlaceAgent(id, out spawnPos))
@@ -131,10 +157,11 @@ namespace StoatVsVole
                     Destroy(agentObject);
                 }
             }
-
-
         }
 
+        /// <summary>
+        /// Retrieves a free, inactive agent from the pool.
+        /// </summary>
         private GameObject GetPooledAgent()
         {
             foreach (GameObject agentObject in agentPool)
@@ -148,6 +175,21 @@ namespace StoatVsVole
             return null;
         }
 
+        /// <summary>
+        /// Generates a unique ID for each agent (GUID-based).
+        /// </summary>
+        private string GenerateUniqueAgentID()
+        {
+            return System.Guid.NewGuid().ToString();
+        }
+
+        #endregion
+
+        #region Metrics and Maintenance
+
+        /// <summary>
+        /// Updates mean age and replication fraction of currently active agents.
+        /// </summary>
         private void UpdateMeanAge()
         {
             if (activeAgents.Count == 0)
@@ -166,21 +208,28 @@ namespace StoatVsVole
             }
 
             MeanAge = totalAge / activeAgents.Count;
-            ReplicationFraction = (float) replicationCount / (float)activeAgents.Count;
+            ReplicationFraction = (float)replicationCount / (float)activeAgents.Count;
         }
 
+        #endregion
+
+        #region Agent Lifecycle Management
+
+        /// <summary>
+        /// Handles agent expiration, including potential respawn after replication.
+        /// </summary>
         public void OnExpired(IAgentLifecycle agent)
         {
             if (activeAgents.Contains(agent))
             {
-                // Remove Agent
+                // Remove agent
                 MonoBehaviour agentMono = agent as MonoBehaviour;
                 GameObject agentObject = agentMono.gameObject;
                 activeAgents.Remove(agent);
                 coverManager.RemoveAgent(agent.GetAgentID());
                 agentObject.SetActive(false);
 
-                // Replace it only when it has replicated
+                // Respawn if replicated
                 if (agent.HasReplicated())
                 {
                     agent.ResetState();
@@ -200,7 +249,6 @@ namespace StoatVsVole
                         Destroy(agentObject);
                     }
                 }
-
             }
             else
             {
@@ -208,8 +256,14 @@ namespace StoatVsVole
             }
         }
 
+        /// <summary>
+        /// Called when an agent replicates. (Currently empty.)
+        /// </summary>
         public void OnReplicated(IAgentLifecycle agent)
         {
+            // TODO: Implement future replication effects here (e.g., mutation, new agent properties).
         }
+
+        #endregion
     }
 }

@@ -3,9 +3,15 @@ using System.Collections.Generic;
 
 namespace StoatVsVole
 {
+    /// <summary>
+    /// Generates a procedural terrain mesh using a combination of Perlin and Ridged noise.
+    /// Controls ground height, wall radius, and world boundary based on GlobalSettings.
+    /// </summary>
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
     public class EnvironmentGroundSpawner : MonoBehaviour
     {
+        #region Fields and Settings
+
         [Header("General Ground Settings")]
         public Material groundMaterial;
         public int resolution = 128;
@@ -13,10 +19,12 @@ namespace StoatVsVole
         public GlobalSettings globalSettings;
 
         [Header("Wall Settings")]
-        [Range(0f, 1f)] public float wallRadiusFraction = 1f;
+        [Range(0f, 1f)]
+        public float wallRadiusFraction = 1f;
 
         [Header("Noise Blending Settings")]
-        [Range(0f, 1f)] public float perlinWeight = 0.5f;
+        [Range(0f, 1f)]
+        public float perlinWeight = 0.5f;
 
         [Header("Perlin Noise Settings")]
         public float perlinNoiseScale = 10f;
@@ -35,13 +43,30 @@ namespace StoatVsVole
         private Mesh mesh;
         private Vector3[] vertices;
 
-        void Start()
+        #endregion
+
+        #region Unity Lifecycle
+
+        private void Start()
         {
             GenerateGround();
         }
 
-        public float GetWallRadius() => globalSettings.worldSize * 0.5f * wallRadiusFraction;
+        #endregion
 
+        #region Public Methods
+
+        /// <summary>
+        /// Returns the radius used for wall boundary placement based on world size.
+        /// </summary>
+        public float GetWallRadius()
+        {
+            return globalSettings.worldSize * 0.5f * wallRadiusFraction;
+        }
+
+        /// <summary>
+        /// Procedurally generates the ground mesh using Perlin and Ridged noise blending.
+        /// </summary>
         public void GenerateGround()
         {
             mesh = new Mesh();
@@ -58,14 +83,10 @@ namespace StoatVsVole
             float maxHeight = float.MinValue;
 
             System.Random prng = new System.Random(seed);
-            Vector2[] perlinOffsets = new Vector2[perlinOctaves];
-            Vector2[] ridgedOffsets = new Vector2[ridgedOctaves];
+            Vector2[] perlinOffsets = GenerateOffsets(perlinOctaves, prng);
+            Vector2[] ridgedOffsets = GenerateOffsets(ridgedOctaves, prng);
 
-            for (int i = 0; i < perlinOctaves; i++)
-                perlinOffsets[i] = new Vector2(prng.Next(-100000, 100000), prng.Next(-100000, 100000));
-            for (int i = 0; i < ridgedOctaves; i++)
-                ridgedOffsets[i] = new Vector2(prng.Next(-100000, 100000), prng.Next(-100000, 100000));
-
+            // Build heightmap
             for (int z = 0; z < vertsPerLine; z++)
             {
                 for (int x = 0; x < vertsPerLine; x++)
@@ -85,6 +106,7 @@ namespace StoatVsVole
                 }
             }
 
+            // Build vertices
             for (int z = 0; z < vertsPerLine; z++)
             {
                 for (int x = 0; x < vertsPerLine; x++)
@@ -103,6 +125,7 @@ namespace StoatVsVole
                 }
             }
 
+            // Build triangles
             for (int z = 0; z < resolution; z++)
             {
                 for (int x = 0; x < resolution; x++)
@@ -123,10 +146,16 @@ namespace StoatVsVole
             mesh.RecalculateNormals();
 
             GetComponent<MeshFilter>().mesh = mesh;
-            // GetComponent<MeshRenderer>().material = groundMaterial;
             GetComponent<MeshCollider>().sharedMesh = mesh;
+
+            // Optional material application
+            // GetComponent<MeshRenderer>().material = groundMaterial;
+            // TODO: Consider exposing "ApplyGroundMaterial" toggle in Inspector.
         }
 
+        /// <summary>
+        /// Returns the terrain height at a given world position.
+        /// </summary>
         public float GetHeightAtWorldPosition(Vector3 position)
         {
             Vector3 localPos = transform.InverseTransformPoint(position);
@@ -142,8 +171,12 @@ namespace StoatVsVole
                 return transform.TransformPoint(vertices[index]).y;
             }
 
-            return position.y;
+            return position.y; // Fallback
         }
+
+        #endregion
+
+        #region Private Methods
 
         private float CalculatePerlin(float x, float z, Vector2[] offsets)
         {
@@ -174,5 +207,17 @@ namespace StoatVsVole
             }
             return height;
         }
+
+        private Vector2[] GenerateOffsets(int count, System.Random prng)
+        {
+            Vector2[] offsets = new Vector2[count];
+            for (int i = 0; i < count; i++)
+            {
+                offsets[i] = new Vector2(prng.Next(-100000, 100000), prng.Next(-100000, 100000));
+            }
+            return offsets;
+        }
+
+        #endregion
     }
 }

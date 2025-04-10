@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Sensors;
@@ -7,7 +6,9 @@ using System.Collections.Generic;
 
 namespace StoatVsVole
 {
-    // Interface for all lifecycle-based agents (Static or Dynamic)
+    /// <summary>
+    /// Interface for all lifecycle-based agents (Static or Dynamic).
+    /// </summary>
     public interface IAgentLifecycle
     {
         void SetAgentID(string id);
@@ -23,8 +24,13 @@ namespace StoatVsVole
         void ResetState();
     }
 
+    /// <summary>
+    /// Controls the lifecycle, energy management, and behavior of a single agent.
+    /// Integrates with Unity ML-Agents for training, and manages resource exchange logic.
+    /// </summary>
     public class AgentController : Agent, IAgentLifecycle
     {
+        #region Fields and Settings
 
         [Header("Lifecycle Settings")]
         public AgentDefinition agentDefinition;
@@ -33,10 +39,9 @@ namespace StoatVsVole
         public float replicationAge;
         public bool canExpire;
         public float age;
-        
+
         private float maxEnergy;
         private float energyExchangeRate;
-
 
         [Header("Energy Transfer Settings")]
         public List<string> detectableTags;
@@ -81,6 +86,13 @@ namespace StoatVsVole
         public float expirationWithoutReplicationPenalty;
         public float replicationAward;
 
+        #endregion
+
+        #region Unity Lifecycle Methods
+
+        /// <summary>
+        /// Unity Awake. Initializes core components.
+        /// </summary>
         protected new void Awake()
         {
             rb = GetComponent<Rigidbody>();
@@ -88,28 +100,75 @@ namespace StoatVsVole
             sensors = GetComponentsInChildren<RayPerceptionSensorComponent3D>();
         }
 
+        /// <summary>
+        /// Unity Start. Initializes debug label.
+        /// </summary>
         void Start()
         {
             floatingLabel = GetComponentInChildren<FloatingLabel>();
         }
 
+        /// <summary>
+        /// Unity FixedUpdate. Main simulation step: handles aging, expiration, energy interactions.
+        /// </summary>
+        private void FixedUpdate()
+        {
+            if (!isActive)
+                return;
+
+            HandleAging();
+
+            if (CheckExpirationConditions())
+                Expire();
+
+            if (IsExpired())
+                return;
+
+            if (targetResourceAgent == null || targetResourceAgent.IsExpired())
+            {
+                withEnergySource = false;
+                targetResourceAgent = null;
+                if (agentMaterialInstance != null)
+                    agentMaterialInstance.color = originalColor;
+            }
+
+            HandleOutgoingRequests();
+            HandleIncomingRequests();
+            UpdateLabel();
+        }
+
+        /// <summary>
+        /// Unity Update. (Currently unused.)
+        /// </summary>
+        private void Update()
+        {
+            // TODO: Potentially move some non-physics logic here in the future.
+        }
+
+        #endregion
+
+        #region Initialization and Reset
+
+        /// <summary>
+        /// Initializes agent from a definition (typically loaded from JSON).
+        /// </summary>
         public void InitializeFromDefinition(AgentDefinition definition)
         {
             agentDefinition = definition;
-
             isDynamic = agentDefinition.agentType.ToLower() == "dynamic";
-
             ResetState();
 
-            // Materials
             Renderer renderer = GetComponentInChildren<Renderer>();
             if (renderer != null)
             {
-                agentMaterialInstance = renderer.material; // This creates an instance
+                agentMaterialInstance = renderer.material;
                 originalColor = agentMaterialInstance.color;
             }
         }
 
+        /// <summary>
+        /// Resets internal state for respawn/reuse.
+        /// </summary>
         public void ResetState()
         {
             if (agentDefinition != null)
@@ -154,39 +213,17 @@ namespace StoatVsVole
             gameObject.tag = agentTag;
         }
 
-        private void FixedUpdate()
+        /// <summary>
+        /// Sets manager reference for callbacks.
+        /// </summary>
+        public void SetManager(Manager managerReference)
         {
-            if (!isActive)
-                return;
-
-            HandleAging();
-
-            if (CheckExpirationConditions())
-            {
-                Expire();
-            }
-
-            if (IsExpired())
-                return;
-
-            if (targetResourceAgent == null || targetResourceAgent.IsExpired())
-            {
-                withEnergySource = false;
-                targetResourceAgent = null;
-                if (agentMaterialInstance != null)
-                {
-                    agentMaterialInstance.color = originalColor;
-                }
-            }
-
-            HandleOutgoingRequests();
-            HandleIncomingRequests();
-            UpdateLabel();
+            manager = managerReference;
         }
 
-        private void Update()
-        {
-        }
+        #endregion
+
+        #region Energy Management
 
         private void HandleOutgoingRequests()
         {
@@ -208,9 +245,7 @@ namespace StoatVsVole
                 {
                     energy += amountReceived;
                     energy = Mathf.Min(energy, maxEnergy);
-
                     activeOutgoingRequest.provider.ConfirmEnergyTransfer(amountReceived);
-
                     activeOutgoingRequest.isCompleted = true;
                 }
                 else
@@ -220,7 +255,6 @@ namespace StoatVsVole
 
                 activeOutgoingRequest = null;
             }
-
         }
 
         private void HandleIncomingRequests()
@@ -238,18 +272,41 @@ namespace StoatVsVole
                     return;
                 }
 
-                // In this basic version, we don't need to actively process incoming requests.
-                // Energy is only deducted when a confirmed RequestEnergy() is called by the requester.
-
+                // Note: Actual deduction occurs when requester confirms energy transfer.
                 activeIncomingRequest = null;
             }
         }
 
-
-        public void SetManager(Manager managerReference)
+        /// <summary>
+        /// Request available energy (non-destructive until confirmed).
+        /// </summary>
+        public float RequestEnergy(float amountRequested)
         {
-            manager = managerReference;
+            if (IsExpired())
+                return 0f;
+
+            return Mathf.Min(amountRequested, energy);
         }
+
+        /// <summary>
+        /// Confirm actual energy transfer (deducts energy).
+        /// </summary>
+        public void ConfirmEnergyTransfer(float amountTransferred)
+        {
+            if (IsExpired())
+                return;
+
+            energy -= amountTransferred;
+
+            if (energy <= 0f)
+            {
+                Expire();
+            }
+        }
+
+        #endregion
+
+        #region Collision Handling
 
         private void OnTriggerEnter(Collider other)
         {
@@ -303,6 +360,9 @@ namespace StoatVsVole
             }
         }
 
+        #endregion
+
+        #region ML-Agents Integration
 
         public override void OnActionReceived(ActionBuffers actionBuffers)
         {
@@ -315,7 +375,43 @@ namespace StoatVsVole
             }
         }
 
-        public void MoveAgent(ActionSegment<int> act)
+        public override void Heuristic(in ActionBuffers actionsOut)
+        {
+            if (!isDynamic)
+                return;
+
+            var discreteActionsOut = actionsOut.DiscreteActions;
+            if (actionsOut.DiscreteActions.Length == 0) return;
+
+            if (Input.GetKey(KeyCode.W))
+                discreteActionsOut[0] = 1;
+            else if (Input.GetKey(KeyCode.S))
+                discreteActionsOut[0] = 2;
+            else if (Input.GetKey(KeyCode.A))
+                discreteActionsOut[0] = 3;
+            else if (Input.GetKey(KeyCode.D))
+                discreteActionsOut[0] = 4;
+            else
+                discreteActionsOut[0] = 0;
+        }
+
+        public override void CollectObservations(VectorSensor sensor)
+        {
+            if (!isDynamic)
+            {
+                sensor.AddObservation(0f);
+                return;
+            }
+
+            // TODO: Implement real observations for dynamic agents
+        }
+
+        public override void OnEpisodeBegin()
+        {
+            // TODO: Handle environment resets, agent reset, etc.
+        }
+
+        private void MoveAgent(ActionSegment<int> act)
         {
             var dirToGo = Vector3.zero;
             var rotateDir = Vector3.zero;
@@ -324,13 +420,13 @@ namespace StoatVsVole
             switch (action)
             {
                 case 1:
-                    dirToGo = transform.forward * 1f;
+                    dirToGo = transform.forward;
                     break;
                 case 2:
                     dirToGo = transform.forward * -1f;
                     break;
                 case 3:
-                    rotateDir = transform.up * 1f;
+                    rotateDir = transform.up;
                     break;
                 case 4:
                     rotateDir = transform.up * -1f;
@@ -352,67 +448,9 @@ namespace StoatVsVole
             }
         }
 
-        public override void OnEpisodeBegin()
-        {
-        }
+        #endregion
 
-        public override void CollectObservations(VectorSensor sensor)
-        {
-
-            if (!isDynamic)
-            {
-
-                // Static agents provide 1 dummy observation to satisfy ML-Agents
-                sensor.AddObservation(0f);
-                return;
-            }
-
-            // Dynamic agents - real observations (if needed)
-
-        }
-
-        public override void Heuristic(in ActionBuffers actionsOut)
-        {
-            if (!isDynamic)
-                return;
-
-            var discreteActionsOut = actionsOut.DiscreteActions;
-            if (actionsOut.DiscreteActions.Length == 0) return;
-
-            if (Input.GetKey(KeyCode.W))
-                discreteActionsOut[0] = 1; // Move Forward
-            else if (Input.GetKey(KeyCode.S))
-                discreteActionsOut[0] = 2; // Move Backward
-            else if (Input.GetKey(KeyCode.A))
-                discreteActionsOut[0] = 3; // Rotate Left
-            else if (Input.GetKey(KeyCode.D))
-                discreteActionsOut[0] = 4; // Rotate Right
-            else
-                discreteActionsOut[0] = 0; // Do nothing
-
-        }
-
-        public float RequestEnergy(float amountRequested)
-        {
-            if (IsExpired())
-                return 0f;
-
-            // No deduction yet; just offer what is available
-            return Mathf.Min(amountRequested, energy);
-        }
-
-        public void ConfirmEnergyTransfer(float amountTransferred)
-        {
-            if (IsExpired())
-                return;
-
-            energy -= amountTransferred;
-
-            if (energy <= 0f)
-            {
-                Expire();
-            }
-        }
+        #region Lifecycle Management
 
         private void HandleAging()
         {
@@ -424,14 +462,8 @@ namespace StoatVsVole
             }
         }
 
-        protected virtual void HandleLongevityReward()
-        {
-            AddReward(longevityRewardPerStep * Time.fixedDeltaTime);
-        }
-
         protected virtual bool CheckExpirationConditions()
         {
-
             if (!canExpire)
                 return false;
 
@@ -442,12 +474,27 @@ namespace StoatVsVole
         {
             isActive = false;
             isExpired = true;
+
             if (!hasReplicated)
             {
                 AddReward(expirationWithoutReplicationPenalty);
             }
-            // Suspend();
+
             manager.OnExpired(this);
+        }
+
+        public void Replicate()
+        {
+            if (!hasReplicated)
+            {
+                hasReplicated = true;
+                manager.OnReplicated(this);
+            }
+        }
+
+        protected virtual void HandleLongevityReward()
+        {
+            AddReward(longevityRewardPerStep * Time.fixedDeltaTime);
         }
 
         protected void Suspend()
@@ -474,25 +521,24 @@ namespace StoatVsVole
             }
 
             gameObject.tag = "Untagged";
-
-            // flowerManager?.OnFlowerSuspended(this.gameObject);
-
         }
 
-        public void SetAgentID(string id)
-        {
-            agentID = id;
-        }
+        #endregion
 
-        public string GetAgentID()
-        {
-            return agentID;
+        #region IAgentLifecycle API
 
-        }
+        public void SetAgentID(string id) => agentID = id;
+        public string GetAgentID() => agentID;
+        public float GetAge() => age;
+        public bool IsActive() => isActive && !isSuspended;
+        public bool IsExpired() => isExpired;
+        public bool IsSuspended() => isSuspended;
+        public bool IsDynamic() => isDynamic;
+        public bool HasReplicated() => hasReplicated;
 
         public void RandomizeMaxAge(float standardDeviation)
         {
-            float randomized = Utils.RandomNormal(maxAge*0.5f, standardDeviation);
+            float randomized = Utils.RandomNormal(maxAge * 0.5f, standardDeviation);
             maxAge = Mathf.Max(1f, randomized);
             print(maxAge);
         }
@@ -504,62 +550,21 @@ namespace StoatVsVole
             print(replicationAge);
         }
 
+        #endregion
 
-        public void Replicate()
-        {
-            if (!hasReplicated)
-            {
-                hasReplicated = true;
-                manager.OnReplicated(this);
-            }
-        }
-
-        public float GetAge()
-        {
-            return age;
-        }
-
-        public bool IsExpired()
-        {
-            return isExpired;
-        }
-
-        public bool IsSuspended()
-        {
-            return isSuspended;
-        }
-
-        public bool IsActive()
-        {
-            return isActive && !isSuspended;
-        }
-
-        public bool IsDynamic()
-        {
-            return isActive && !isSuspended;
-        }
-
-        public bool HasReplicated()
-        {
-            return hasReplicated;
-        }
+        #region Debugging
 
         private void UpdateLabel()
         {
             if (floatingLabel != null)
             {
                 string labelText = $"{agentTag}\nEnergy: {energy:F1}";
-                if (withEnergySource)
-                {
-                    labelText += "\nExtracting";
-                }
-                if (withEnergySink)
-                {
-                    labelText += "\nBeing Drained";
-                }
-
+                if (withEnergySource) labelText += "\nExtracting";
+                if (withEnergySink) labelText += "\nBeing Drained";
                 floatingLabel.SetLabelText(labelText);
             }
         }
+
+        #endregion
     }
 }

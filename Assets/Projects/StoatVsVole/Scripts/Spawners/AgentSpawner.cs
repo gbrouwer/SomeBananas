@@ -7,8 +7,21 @@ using Unity.MLAgentsExamples;
 
 namespace StoatVsVole
 {
+    /// <summary>
+    /// Dynamically spawns agents in the simulation using settings defined in AgentDefinition files.
+    /// Handles prefab instantiation, body setup, colliders, sensors, ML-Agents integration, and behavior overrides.
+    /// </summary>
     public class AgentSpawner : MonoBehaviour
     {
+        #region Public Methods
+
+        /// <summary>
+        /// Spawns an agent GameObject using the provided AgentDefinition configuration.
+        /// </summary>
+        /// <param name="config">The agent definition containing prefab, body, and ML-Agents parameters.</param>
+        /// <param name="position">World position to spawn at.</param>
+        /// <param name="rotation">World rotation to spawn with.</param>
+        /// <returns>Instantiated agent GameObject, or null if spawning fails.</returns>
         public GameObject SpawnAgentFromDefinition(AgentDefinition config, Vector3 position, Quaternion rotation)
         {
             if (!TagExists(config.agentTag))
@@ -26,7 +39,43 @@ namespace StoatVsVole
 
             GameObject agentGO = Instantiate(agentPrefab, position, rotation);
 
-            // Body Prefab
+            SetupBody(config, agentGO);
+            SetupCollider(config, agentGO);
+            SetupSensors(config, agentGO);
+            SetupAgentController(config, agentGO);
+            SetupRigidbody(config, agentGO);
+            SetupBehaviorParameters(config, agentGO);
+            SetupDecisionRequester(config, agentGO);
+            SetupModelOverrider(config, agentGO);
+
+            agentGO.transform.position = new Vector3(0, config.bodySettings.scaleY * 0.5f, 0); // TODO: Consider generalizing this ground offset.
+            return agentGO;
+        }
+
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Verifies if a given tag exists in the project.
+        /// </summary>
+        private bool TagExists(string tag)
+        {
+            try
+            {
+                GameObject temp = new GameObject();
+                temp.tag = tag;
+                Destroy(temp);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void SetupBody(AgentDefinition config, GameObject agentGO)
+        {
             GameObject bodyPrefab = Resources.Load<GameObject>(config.bodyPrefabName);
             if (bodyPrefab != null)
             {
@@ -56,8 +105,10 @@ namespace StoatVsVole
                     }
                 }
             }
+        }
 
-            // Collider Settings
+        private void SetupCollider(AgentDefinition config, GameObject agentGO)
+        {
             var collider = agentGO.GetComponent<Collider>();
             if (collider != null && config.colliderSettings != null)
             {
@@ -77,11 +128,14 @@ namespace StoatVsVole
                     sphereCollider.radius = config.colliderSettings.radius;
                     sphereCollider.center = config.colliderSettings.center;
                 }
+
                 collider.isTrigger = config.colliderSettings.isTrigger;
                 collider.providesContacts = config.colliderSettings.providesContacts;
             }
+        }
 
-            // Sensor Prefab
+        private void SetupSensors(AgentDefinition config, GameObject agentGO)
+        {
             if (config.raySensorSettings != null && config.raySensorSettings.enabled &&
                 !string.IsNullOrEmpty(config.sensorPrefabName) && config.sensorPrefabName != "None")
             {
@@ -109,14 +163,16 @@ namespace StoatVsVole
                     }
                 }
             }
+        }
 
+        private void SetupAgentController(AgentDefinition config, GameObject agentGO)
+        {
             AgentController agentController = agentGO.GetComponent<AgentController>();
             if (agentController != null)
             {
                 agentController.energy = config.initialEnergy;
                 agentController.maxAge = config.maxAge;
                 agentController.replicationAge = config.replicationAge;
-                agentController.agentTag = config.agentTag;
                 agentController.agentTag = config.agentTag;
                 agentController.canExpire = config.canExpire;
                 agentController.detectableTags = config.detectableTags;
@@ -138,13 +194,16 @@ namespace StoatVsVole
                     agentController.maxSpeed = config.motionSettings.maxSpeed;
                 }
             }
+        }
 
+        private void SetupRigidbody(AgentDefinition config, GameObject agentGO)
+        {
             Rigidbody rb = agentGO.GetComponent<Rigidbody>();
             if (rb != null && config.rigidbodySettings != null)
             {
                 if (config.rigidbodySettings.mass <= 0f)
                 {
-                    Object.Destroy(rb); // No Rigidbody needed for static agents
+                    Destroy(rb); // No Rigidbody needed for static agents
                 }
                 else
                 {
@@ -157,8 +216,10 @@ namespace StoatVsVole
                     rb.useGravity = true;
                 }
             }
-            // }
+        }
 
+        private void SetupBehaviorParameters(AgentDefinition config, GameObject agentGO)
+        {
             BehaviorParameters behaviorParameters = agentGO.GetComponent<BehaviorParameters>();
             if (behaviorParameters != null && config.behaviorParameterSettings != null)
             {
@@ -175,7 +236,10 @@ namespace StoatVsVole
                     behaviorParameters.InferenceDevice = (InferenceDevice)System.Enum.Parse(typeof(InferenceDevice), config.behaviorParameterSettings.inferenceDevice);
                 }
             }
+        }
 
+        private void SetupDecisionRequester(AgentDefinition config, GameObject agentGO)
+        {
             DecisionRequester decisionRequester = agentGO.GetComponent<DecisionRequester>();
             if (decisionRequester != null && config.decisionRequesterSettings != null)
             {
@@ -190,31 +254,18 @@ namespace StoatVsVole
                     decisionRequester.TakeActionsBetweenDecisions = config.decisionRequesterSettings.takeActionsBetweenDecisions;
                 }
             }
+        }
 
+        private void SetupModelOverrider(AgentDefinition config, GameObject agentGO)
+        {
             ModelOverrider modelOverrider = agentGO.GetComponent<ModelOverrider>();
             if (modelOverrider != null && config.modelOverriderSettings != null && config.modelOverriderSettings.hasOverrides)
             {
                 modelOverrider.enabled = true;
                 modelOverrider.debugCommandLineOverride = config.modelOverriderSettings.debugCommandLineOverride;
-            }            
-
-            agentGO.transform.position = new Vector3(0,config.bodySettings.scaleY*0.5f,0);
-            return agentGO;
-        }
-
-        private bool TagExists(string tag)
-        {
-            try
-            {
-                GameObject temp = new GameObject();
-                temp.tag = tag;
-                Destroy(temp);
-                return true;
-            }
-            catch
-            {
-                return false;
             }
         }
+
+        #endregion
     }
 }

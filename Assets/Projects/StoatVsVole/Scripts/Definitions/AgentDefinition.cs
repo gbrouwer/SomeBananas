@@ -6,25 +6,35 @@ using System.Collections.Generic;
 
 namespace StoatVsVole
 {
+    /// <summary>
+    /// Serializable class defining all parameters required to configure an agent.
+    /// Used to instantiate agents dynamically from config files.
+    /// </summary>
     [Serializable]
     public class AgentDefinition
     {
+        // General Agent Settings
         public string agentType;
         public string agentClass;
         public string agentPrefabName;
         public string bodyPrefabName;
         public string sensorPrefabName;
+
+        // Energy and Lifecycle Settings
         public float initialEnergy;
         public float maxEnergy;
         public float energyExchangeRate;
         public bool canExpire = true;
         public float maxAge;
         public float replicationAge;
+
+        // Tagging and Sensing
         public string agentTag;
         public List<string> detectableTags;
         public List<string> energySources;
         public List<string> energySinks;
 
+        // Components and Behavior Settings
         public RigidbodySettings rigidbodySettings;
         public ColliderSettings colliderSettings;
         public BodySettings bodySettings;
@@ -34,9 +44,11 @@ namespace StoatVsVole
         public RewardSettings rewardSettings;
         public MotionSettings motionSettings;
         public ModelOverriderSettings modelOverriderSettings;
-
     }
 
+    /// <summary>
+    /// Settings for the agent's Rigidbody component.
+    /// </summary>
     [Serializable]
     public class RigidbodySettings
     {
@@ -45,6 +57,10 @@ namespace StoatVsVole
         public float angularDamping;
         public RigidbodyConstraints constraints;
     }
+
+    /// <summary>
+    /// Settings for the agent's Collider component.
+    /// </summary>
     [Serializable]
     public class ColliderSettings
     {
@@ -55,6 +71,10 @@ namespace StoatVsVole
         public bool isTrigger;
         public bool providesContacts;
     }
+
+    /// <summary>
+    /// Settings for the body visual (mesh) of the agent.
+    /// </summary>
     [Serializable]
     public class BodySettings
     {
@@ -67,6 +87,9 @@ namespace StoatVsVole
         public string materialName;
     }
 
+    /// <summary>
+    /// Settings for ML-Agents BehaviorParameters component.
+    /// </summary>
     [Serializable]
     public class BehaviorParameterSettings
     {
@@ -77,6 +100,9 @@ namespace StoatVsVole
         public string inferenceDevice;
     }
 
+    /// <summary>
+    /// Settings for ML-Agents DecisionRequester component.
+    /// </summary>
     [Serializable]
     public class DecisionRequesterSettings
     {
@@ -85,6 +111,9 @@ namespace StoatVsVole
         public bool takeActionsBetweenDecisions = true;
     }
 
+    /// <summary>
+    /// Settings for RayPerceptionSensorComponent3D attached to the agent.
+    /// </summary>
     [Serializable]
     public class RaySensorSettings
     {
@@ -98,9 +127,12 @@ namespace StoatVsVole
         public float scaleY = 1.0f;
         public float scaleZ = 1.0f;
         public float startVerticalOffset;
-        public float endVerticalOffset;        
+        public float endVerticalOffset;
     }
 
+    /// <summary>
+    /// Settings for the agent's basic movement capabilities.
+    /// </summary>
     [Serializable]
     public class MotionSettings
     {
@@ -109,6 +141,9 @@ namespace StoatVsVole
         public float maxSpeed;
     }
 
+    /// <summary>
+    /// Settings for reinforcement learning reward shaping.
+    /// </summary>
     [Serializable]
     public class RewardSettings
     {
@@ -117,6 +152,9 @@ namespace StoatVsVole
         public float replicationAward = 2.0f;
     }
 
+    /// <summary>
+    /// Settings for overriding trained models via the ModelOverrider utility.
+    /// </summary>
     [Serializable]
     public class ModelOverriderSettings
     {

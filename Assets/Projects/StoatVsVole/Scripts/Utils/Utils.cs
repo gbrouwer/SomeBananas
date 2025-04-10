@@ -2,8 +2,19 @@ using UnityEngine;
 
 namespace StoatVsVole
 {
+    /// <summary>
+    /// Provides utility functions for random sampling and statistical evaluation, 
+    /// particularly focused on normal distributions.
+    /// </summary>
     public static class Utils
     {
+        #region Public Methods
+
+        /// <summary>
+        /// Returns a random float sampled from a normal (Gaussian) distribution.
+        /// </summary>
+        /// <param name="mean">The mean (center) of the distribution.</param>
+        /// <param name="standardDeviation">The standard deviation (spread) of the distribution.</param>
         public static float RandomNormal(float mean, float standardDeviation)
         {
             float u1 = 1.0f - UnityEngine.Random.value;
@@ -13,6 +24,9 @@ namespace StoatVsVole
             return mean + standardDeviation * randStdNormal;
         }
 
+        /// <summary>
+        /// Evaluates the probability density function (PDF) of a normal distribution at a given x.
+        /// </summary>
         public static float EvaluateNormalPDF(float x, float mean, float standardDeviation)
         {
             float variance = standardDeviation * standardDeviation;
@@ -21,12 +35,23 @@ namespace StoatVsVole
             return (1f / denominator) * Mathf.Exp(exponent);
         }
 
+        /// <summary>
+        /// Evaluates the cumulative distribution function (CDF) of a normal distribution at a given x.
+        /// </summary>
         public static float EvaluateNormalCDF(float x, float mean, float standardDeviation)
         {
             float z = (x - mean) / (Mathf.Sqrt(2f) * standardDeviation);
             return 0.5f * (1f + Erf(z));
         }
 
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// Approximates the error function (erf) using a numerical approximation.
+        /// Used for calculating the normal CDF.
+        /// </summary>
         private static float Erf(float x)
         {
             float t = 1.0f / (1.0f + 0.3275911f * Mathf.Abs(x));
@@ -34,5 +59,7 @@ namespace StoatVsVole
             float sign = x < 0f ? -1f : 1f;
             return sign * (1f - tau * Mathf.Exp(-x * x));
         }
+
+        #endregion
     }
 }
