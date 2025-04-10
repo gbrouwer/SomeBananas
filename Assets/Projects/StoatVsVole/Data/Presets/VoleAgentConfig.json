@@ -1,0 +1,75 @@
+{
+  "agentClass": "vole",
+  "agentType": "dynamic",
+  "agentTag": "vole",
+  "agentPrefabName": "StoatVsVole/Prefabs/BaseAgent",
+  "bodyPrefabName": "StoatVsVole/Prefabs/VoleBody",
+  "sensorPrefabName": "StoatVsVole/Prefabs/VoleSensor",
+  "initialEnergy": 100.0,
+  "maxEnergy": 200.0,
+  "energyExchangeRate": 1.0,
+  "maxAge": 500,
+  "replicationAge":250,
+  "canExpire": true,
+  "detectableTags": ["vole", "stoat", "wall", "ground", "flower"],
+  "energySources": ["flower"],
+  "energySinks": ["stoat"],
+  "rigidbodySettings": {
+    "mass": 10,
+    "linearDamping": 4,
+    "angularDamping": 0.05,
+    "constraints": 112
+    },
+    "bodySettings": {
+      "scaleX": 0.5,
+      "scaleY": 0.5,
+      "scaleZ": 0.5,
+      "offsetX": 0.0,
+      "offsetY": 0.0,
+      "offsetZ": 0.0,
+      "materialName": "StoatVsVole/Materials/VoleMaterial"
+    },
+    "colliderSettings": {
+      "center": { "x": 0.0, "y": 0.0, "z": 0.0 },
+      "radius": 0.5, 
+      "height": 2.0,
+      "size": { "x": 0.5, "y": 0.5, "z": 0.5 },
+      "isTrigger": false,
+      "providesContacts": true
+    },
+  "behaviorParameterSettings": {
+    "enabled": true,
+    "behaviorName": "VoleBehavior",
+    "behaviorType": "HeuristicOnly",
+    "teamID": 0,
+    "inferenceDevice": "ComputeShader"
+  },
+  "decisionRequesterSettings": {
+    "enabled": true,
+    "decisionPeriod": 5,
+    "takeActionsBetweenDecisions": true
+  },
+  "raySensorSettings": {
+    "enabled": true,
+    "sensorName": "VoleSensor",
+    "raysPerDirection": 3,
+    "maxRayDegrees": 70.0,
+    "rayLength": 15.0,
+    "detectableTags": ["vole", "stoat", "wall", "ground", "flower"]
+  },
+  "rewardSettings": {
+    "longevityRewardPerStep": -0.001,
+    "expirationWithoutReplicationPenalty": -1.0,
+    "reproductionReward": 2.0
+  },
+  "motionSettings": {
+    "agentRunSpeed": 3.0,
+    "agentRotationSpeed": 200.0,
+    "maxSpeed": 5.0
+  },
+  "modelOverriderSettings": {
+    "hasOverrides": true,
+    "debugCommandLineOverride": "",
+    "originalBehaviorName": "VoleBehavior"
+  }  
+}

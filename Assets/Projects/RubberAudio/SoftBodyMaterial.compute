@@ -1,0 +1,28 @@
+#pragma kernel CSMain
+
+RWStructuredBuffer<float3> vertices;
+RWStructuredBuffer<float3> originalVertices; // Store original shape
+float3 _ImpactPoint;
+float _DeformStrength;
+float _RecoverySpeed;
+
+[numthreads(64, 1, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    float3 pos = vertices[id.x];
+    float3 originalPos = originalVertices[id.x]; // Get original vertex position
+
+    float dist = distance(pos, _ImpactPoint);
+    
+    // Apply deformation within a radius
+    if (dist < 0.5)
+    {
+        float deformAmount = _DeformStrength * (1.0 - dist / 0.5);
+        pos.y -= deformAmount;
+    }
+
+    // Gradually return vertices to their original position
+    pos = lerp(pos, originalPos, _RecoverySpeed);
+
+    vertices[id.x] = pos;
+}

@@ -1,0 +1,69 @@
+{
+  "agentClass": "stoat",
+  "agentType": "dynamic",
+  "agentTag": "stoat",
+  "agentPrefabName": "StoatVsVole/Prefabs/BaseAgent",
+  "bodyPrefabName": "StoatVsVole/Prefabs/BaseBody",
+  "sensorPrefabName": "StoatVsVole/Prefabs/BaseSensor",
+  "initialEnergy": 100.0,
+  "maxEnergy": 200.0,
+  "energyExchangeRate": 1.0,
+  "maxAge": 500.0,
+  "replicationAge":250,
+  "detectableTags": ["vole", "stoat", "wall", "ground", "flower"],
+  "energySources": ["vole"],
+  "energySinks": [],
+  "rigidbodySettings": {
+    "mass": 10,
+    "linearDamping": 4,
+    "angularDamping": 0.05,
+    "constraints": 112
+  },
+  "bodySettings": {
+    "scaleX": 0.5,
+    "scaleY": 0.5,
+    "scaleZ": 0.5,
+    "offsetX": 0.0,
+    "offsetY": 0.0,
+    "offsetZ": 0.0,
+    "materialName": "StoatVsVole/Materials/FlowerMaterial"
+  },
+  "colliderSettings": {
+    "center": { "x": 0.0, "y": 0.0, "z": 0.0 },
+    "radius": 0.5, 
+    "height": 2.0,
+    "size": { "x": 0.5, "y": 0.5, "z": 0.5 },
+    "isTrigger": false,
+    "providesContacts": true
+},
+  "behaviorParameterSettings": {
+    "enabled": true,
+    "behaviorName": "StoatBehavior",
+    "behaviorType": "Default",
+    "teamID": 1,
+    "inferenceDevice": "GPU"
+  },
+  "decisionRequesterSettings": {
+    "enabled": true,
+    "decisionPeriod": 5,
+    "takeActionsBetweenDecisions": true
+  },
+  "raySensorSettings": {
+    "enabled": true,
+    "sensorName": "StoatSensor",
+    "raysPerDirection": 3,
+    "maxRayDegrees": 70.0,
+    "rayLength": 20.0,
+    "detectableTags": ["vole", "stoat", "wall", "ground", "flower"]
+  },
+  "rewardSettings": {
+    "longevityRewardPerStep": -0.002,
+    "expirationWithoutReplicationPenalty": -1.0,
+    "reproductionReward": 3.0
+  },
+  "motionSettings": {
+    "agentRunSpeed": 5.0,
+    "agentRotationSpeed": 200.0,
+    "maxSpeed": 6.0
+  }
+}
