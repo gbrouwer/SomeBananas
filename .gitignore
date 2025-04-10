@@ -1,0 +1,42 @@
+# ========== Unity Specific ==========
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+MemoryCaptures/
+UserSettings/
+Assets/AssetStoreTools*
+
+# Crash and lock files
+sysinfo.txt
+*.pidb
+*.booproj
+
+# Rider/VSCode
+.idea/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.svd
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# ========== Docusaurus ==========
+/docs/build/
+
+# ========== ML-Agents ==========
+/results/
+*.onnx
+
+# ========== Git Specific ==========
+.gitattributes
