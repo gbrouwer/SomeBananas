@@ -8,7 +8,8 @@
 MemoryCaptures/
 UserSettings/
 Assets/AssetStoreTools*
-
+Assets/Packages/
+Assets/SharedAssets/
 # Crash and lock files
 sysinfo.txt
 *.pidb
