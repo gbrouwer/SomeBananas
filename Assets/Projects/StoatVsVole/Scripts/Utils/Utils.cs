@@ -60,6 +60,26 @@ namespace StoatVsVole
             return sign * (1f - tau * Mathf.Exp(-x * x));
         }
 
+        public static Bounds CalculateTotalBounds(GameObject go)
+        {
+            Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+            {
+                // No renderers found, return an empty bounds at object's position
+                return new Bounds(go.transform.position, Vector3.zero);
+            }
+
+            Bounds totalBounds = renderers[0].bounds;
+
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                totalBounds.Encapsulate(renderers[i].bounds);
+            }
+
+            return totalBounds;
+        }
+
+
         #endregion
     }
 }

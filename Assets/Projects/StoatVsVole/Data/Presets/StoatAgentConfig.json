@@ -41,7 +41,7 @@
     "behaviorName": "StoatBehavior",
     "behaviorType": "Default",
     "teamID": 1,
-    "inferenceDevice": "GPU"
+    "inferenceDevice": "ComputeShader"
   },
   "decisionRequesterSettings": {
     "enabled": true,

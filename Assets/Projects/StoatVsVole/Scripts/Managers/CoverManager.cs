@@ -175,8 +175,23 @@ namespace StoatVsVole
             }
         }
 
-        public bool TryPlaceAgent(string agentID, out Vector3 spawnPos)
+        public bool TrySpawnAgent(string agentID, AgentDefinition agentDefinition, out Vector3 spawnPos)
         {
+            if (agentDefinition.agentType.ToLower() == "dynamic")
+            {
+                spawnPos = TrySpawnDynamicAgent();
+                return true;
+            }
+            else
+            {
+                return TrySpawnStaticAgent(agentID, out spawnPos);
+            }
+        }
+
+        public bool TrySpawnStaticAgent(string agentID, out Vector3 spawnPos)
+        {
+
+
             if (availableCells.Count == 0)
             {
                 spawnPos = Vector3.zero;
@@ -191,7 +206,58 @@ namespace StoatVsVole
             return true;
         }
 
-        public bool TryPlaceNewAgentByNeighboringClustering(string agentID, out Vector3 spawnPos)
+        private Vector3 TrySpawnDynamicAgent()
+        {
+            float worldSize = globalSettings.worldSize;
+            float halfWorld = worldSize * 0.5f;
+
+            int maxAttempts = 10;
+            float checkRadius = 0.5f; // Depends on agent size
+            int layerMask = Physics.DefaultRaycastLayers; // Includes Default layer (agents + ground)
+
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                Vector3 randomPosition = new Vector3(
+                    Random.Range(-halfWorld, halfWorld),
+                    0f, // No need to lift up now
+                    Random.Range(-halfWorld, halfWorld)
+                );
+
+                Collider[] overlaps = Physics.OverlapSphere(randomPosition, checkRadius, layerMask);
+
+                bool agentFound = false;
+                foreach (var col in overlaps)
+                {
+                    if (col.CompareTag("agent")) // Only care about collisions with other agents
+                    {
+                        agentFound = true;
+                        break;
+                    }
+                }
+
+                if (!agentFound)
+                {
+                    return randomPosition;
+                }
+            }
+
+            Debug.LogWarning("CoverManager: Could not find a free spawn position after max attempts.");
+            return Vector3.zero;
+        }
+
+        public bool TryRespawnAgent(string agentID, AgentDefinition agentDefinition, out Vector3 spawnPos)
+        {
+            if (agentDefinition.agentType.ToLower() == "dynamic")
+            {
+                return TrySpawnAgent(agentID, agentDefinition, out spawnPos); // same as normal
+            }
+            else
+            {
+                return TrySpawnNewAgentByNeighboringClustering(agentID, out spawnPos); // clustering
+            }
+        }
+
+        public bool TrySpawnNewAgentByNeighboringClustering(string agentID, out Vector3 spawnPos)
         {
             List<Vector2Int> candidateCells = new List<Vector2Int>();
 

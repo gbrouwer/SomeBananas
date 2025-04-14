@@ -8,13 +8,13 @@ namespace StoatVsVole
     /// Manager class responsible for pooling, spawning, recycling, and overseeing the lifecycle of all agents.
     /// Agents are autonomous; this manager only handles creation and placement logistics.
     /// </summary>
-    public class Manager : MonoBehaviour
+    public class AgentManager : MonoBehaviour
     {
         #region Fields and Settings
 
         [Header("Manager Settings")]
         [Tooltip("Path to the agent preset JSON.")]
-        private const string presetBasePath = "Assets/SomeBananas/Projects/StoatVsVole/Data/Presets/";
+        private const string presetBasePath = "Assets/Projects/StoatVsVole/Data/Presets/";
         public string PresetFile = "FlowerConfig.json";
 
         public int initialAgentCount = 100;
@@ -28,7 +28,7 @@ namespace StoatVsVole
         private string newAgentID;
 
         [SerializeField]
-        private AgentSpawner agentSpawner;
+        private AgentInstantiator agentInstantiator;
 
         [SerializeField]
         private CoverManager coverManager;
@@ -101,7 +101,7 @@ namespace StoatVsVole
             {
                 Vector3 dummyPosition = Vector3.zero;
                 Quaternion dummyRotation = Quaternion.identity;
-                GameObject agentObject = agentSpawner.SpawnAgentFromDefinition(agentDefinition, dummyPosition, dummyRotation);
+                GameObject agentObject = agentInstantiator.InstantiateAgentFromDefinition(agentDefinition, dummyPosition, dummyRotation);
                 if (agentObject != null)
                 {
                     agentObject.transform.SetParent(agentParent);
@@ -129,6 +129,7 @@ namespace StoatVsVole
         private void SpawnAgent(string id)
         {
             GameObject agentObject = GetPooledAgent();
+            Bounds totalBound = Utils.CalculateTotalBounds(agentObject);
             if (agentObject != null)
             {
                 IAgentLifecycle agentLifecycle = agentObject.GetComponent<IAgentLifecycle>();
@@ -142,9 +143,10 @@ namespace StoatVsVole
                 }
 
                 Vector3 spawnPos;
-                if (coverManager.TryPlaceAgent(id, out spawnPos))
+
+                if (coverManager.TrySpawnAgent(id, agentDefinition, out spawnPos))
                 {
-                    spawnPos = new Vector3(spawnPos.x, agentSize, spawnPos.z);
+                    spawnPos = new Vector3(spawnPos.x, totalBound.extents.y, spawnPos.z);
                     Quaternion spawnRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
                     agentObject.transform.position = spawnPos;
                     agentObject.transform.rotation = spawnRot;
@@ -234,9 +236,9 @@ namespace StoatVsVole
                 {
                     agent.ResetState();
                     Vector3 spawnPos;
-                    if (coverManager.TryPlaceNewAgentByNeighboringClustering(agent.GetAgentID(), out spawnPos))
+                    if (coverManager.TryRespawnAgent(agent.GetAgentID(), agentDefinition, out spawnPos))
                     {
-                        spawnPos = new Vector3(spawnPos.x, agentSize, spawnPos.z);
+                        spawnPos = new Vector3(spawnPos.x, agentObject.transform.position.y, spawnPos.z);
                         Quaternion spawnRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
                         agentObject.transform.position = spawnPos;
                         agentObject.transform.rotation = spawnRot;

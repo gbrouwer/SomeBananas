@@ -6,7 +6,7 @@ namespace StoatVsVole
     public class ManagerMetricsDisplay : MonoBehaviour
     {
         [Header("References")]
-        public Manager manager;
+        public AgentManager manager;
 
         [Header("UI Elements")]
         public TextMeshProUGUI aliveText;

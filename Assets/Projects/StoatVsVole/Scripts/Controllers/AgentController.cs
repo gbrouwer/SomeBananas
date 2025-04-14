@@ -37,13 +37,15 @@ namespace StoatVsVole
         public float energy;
         public float maxAge;
         public float replicationAge;
-        public bool canExpire;
         public float age;
 
+        [Header("Expiration Settings")]
+        private bool ageExpiration = false;
+        private bool energyExpiration = true;
+        
+        [Header("Energy Settings")]
         private float maxEnergy;
         private float energyExchangeRate;
-
-        [Header("Energy Transfer Settings")]
         public List<string> detectableTags;
         public List<string> energySinks;
         public List<string> energySources;
@@ -68,13 +70,15 @@ namespace StoatVsVole
         private bool isDynamic = false;
         private Collider agentCollider;
         private RayPerceptionSensorComponent3D[] sensors;
-        private Manager manager;
+        private AgentManager manager;
 
         [Header("Debug Settings")]
         private Material agentMaterialInstance;
         private Color originalColor;
         private Color triggeredColor = Color.yellow;
         private FloatingLabel floatingLabel;
+        private string lastLabelText = "Test"; // Add this at the top inside Debugging region
+
 
         [Header("Motion Settings")]
         public float agentRunSpeed;
@@ -86,6 +90,7 @@ namespace StoatVsVole
         public float expirationWithoutReplicationPenalty;
         public float replicationAward;
 
+   
         #endregion
 
         #region Unity Lifecycle Methods
@@ -118,12 +123,6 @@ namespace StoatVsVole
 
             HandleAging();
 
-            if (CheckExpirationConditions())
-                Expire();
-
-            if (IsExpired())
-                return;
-
             if (targetResourceAgent == null || targetResourceAgent.IsExpired())
             {
                 withEnergySource = false;
@@ -131,6 +130,12 @@ namespace StoatVsVole
                 if (agentMaterialInstance != null)
                     agentMaterialInstance.color = originalColor;
             }
+
+            if (CheckExpirationConditions())
+                Expire();
+
+            if (IsExpired())
+                return;
 
             HandleOutgoingRequests();
             HandleIncomingRequests();
@@ -164,6 +169,7 @@ namespace StoatVsVole
                 agentMaterialInstance = renderer.material;
                 originalColor = agentMaterialInstance.color;
             }
+
         }
 
         /// <summary>
@@ -177,7 +183,6 @@ namespace StoatVsVole
                 maxAge = agentDefinition.maxAge;
                 replicationAge = agentDefinition.replicationAge;
                 maxEnergy = agentDefinition.maxEnergy;
-                canExpire = agentDefinition.canExpire;
                 energyExchangeRate = agentDefinition.energyExchangeRate;
                 agentTag = agentDefinition.agentTag;
                 detectableTags = agentDefinition.detectableTags;
@@ -216,7 +221,7 @@ namespace StoatVsVole
         /// <summary>
         /// Sets manager reference for callbacks.
         /// </summary>
-        public void SetManager(Manager managerReference)
+        public void SetManager(AgentManager managerReference)
         {
             manager = managerReference;
         }
@@ -298,7 +303,7 @@ namespace StoatVsVole
 
             energy -= amountTransferred;
 
-            if (energy <= 0f)
+            if (energy <= 0f & energyExpiration == true)
             {
                 Expire();
             }
@@ -397,13 +402,24 @@ namespace StoatVsVole
 
         public override void CollectObservations(VectorSensor sensor)
         {
-            if (!isDynamic)
-            {
-                sensor.AddObservation(0f);
-                return;
-            }
+            // if (!isDynamic)
+            // {
+            //     // Static agents (e.g., flowers) — no observations needed
+            //     sensor.AddObservation(0f);
+            //     return;
+            // }
 
-            // TODO: Implement real observations for dynamic agents
+            // if (sensors == null || sensors.Length == 0)
+            // {
+            //     // Dynamic but no Ray Sensors found — fallback to dummy observation
+            //     sensor.AddObservation(0f);
+            //     Debug.LogWarning($"{gameObject.name}: Dynamic agent has no Ray Sensors attached! Added dummy observation.");
+            // }
+            // else
+            // {
+            //     // Dynamic agents with Ray Sensors — no manual observations needed
+            //     // Ray sensors automatically send their observations
+            // }
         }
 
         public override void OnEpisodeBegin()
@@ -464,10 +480,18 @@ namespace StoatVsVole
 
         protected virtual bool CheckExpirationConditions()
         {
-            if (!canExpire)
-                return false;
 
-            return age >= maxAge || energy <= 0f;
+            if (ageExpiration == true) {
+                if (age >= maxAge)
+                    return true;
+                }
+
+            if (energyExpiration == true) {
+                if (energy <= 0f)
+                    return true;
+            }
+
+            return false;
         }
 
         private void Expire()
@@ -540,14 +564,12 @@ namespace StoatVsVole
         {
             float randomized = Utils.RandomNormal(maxAge * 0.5f, standardDeviation);
             maxAge = Mathf.Max(1f, randomized);
-            print(maxAge);
         }
 
         public void RandomizeReplicationAge(float standardDeviation)
         {
             float randomized = Utils.RandomNormal(replicationAge, standardDeviation);
             replicationAge = Mathf.Max(1f, randomized);
-            print(replicationAge);
         }
 
         #endregion
@@ -561,10 +583,15 @@ namespace StoatVsVole
                 string labelText = $"{agentTag}\nEnergy: {energy:F1}";
                 if (withEnergySource) labelText += "\nExtracting";
                 if (withEnergySink) labelText += "\nBeing Drained";
+
+                // if (labelText != lastLabelText) // Only update if it changed
+                // {
                 floatingLabel.SetLabelText(labelText);
+                lastLabelText = labelText;
+                // }
+
             }
         }
-
         #endregion
     }
 }

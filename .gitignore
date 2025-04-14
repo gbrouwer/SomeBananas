@@ -5,16 +5,23 @@
 [Bb]uild/
 [Bb]uilds/
 [Ll]ogs/
+docs/build/
+docs/node_modules/
 MemoryCaptures/
 UserSettings/
+Blender/
 Assets/AssetStoreTools*
 Assets/Packages/
 Assets/SharedAssets/
+Assets/Resources/
+Assets/ML-Agents/a
+ImportedAssets/
+ml-agents/
+docs/
 # Crash and lock files
 sysinfo.txt
 *.pidb
 *.booproj
-
 # Rider/VSCode
 .idea/
 .vscode/

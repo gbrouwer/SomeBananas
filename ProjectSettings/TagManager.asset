@@ -13,6 +13,7 @@ TagManager:
   - plant
   - stoat
   - flower
+  - track
   layers:
   - Default
   - TransparentFX

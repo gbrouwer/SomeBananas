@@ -4,8 +4,6 @@ using System.Collections;
 using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
-using Unity.Transforms;
-using Unity.VisualScripting;
 using Unity.MLAgents.Sensors;
 namespace CubeEscape
 {

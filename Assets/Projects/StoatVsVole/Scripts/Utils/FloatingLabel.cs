@@ -28,7 +28,7 @@ namespace StoatVsVole
 
         private void Update()
         {
-            // Future: If you want to make the label dynamically update, you could enable this block
+
             // if (textMesh != null)
             // {
             //     textMesh.text = gameObject.tag; // Example: dynamic tag update
@@ -71,10 +71,10 @@ namespace StoatVsVole
             // Create a new GameObject for the label
             GameObject label = new GameObject("FloatingLabel");
             label.transform.SetParent(this.transform);
-            label.transform.localPosition = new Vector3(0, 2f, 0); // Slightly above the agent
+            label.transform.localPosition = new Vector3(0, 2f, 0); // Slightly above the agente
 
             textMesh = label.AddComponent<TextMesh>();
-            textMesh.text = gameObject.tag;
+            // textMesh.text = gameObject.tag;
             textMesh.fontSize = 32;
             textMesh.characterSize = 0.1f;
             textMesh.color = Color.white;
