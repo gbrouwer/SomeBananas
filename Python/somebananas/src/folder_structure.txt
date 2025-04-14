@@ -1,0 +1,107 @@
+Folder structure for ../../../Assets/Projects/StoatVsVole:
+
+../../../Assets/Projects/StoatVsVole
+├── Data
+│   ├── Presets
+│   │   ├── FlowerAgentConfig.json
+│   │   ├── FlowerAgentConfig.json.meta
+│   │   ├── StoatAgentConfig.json
+│   │   ├── StoatAgentConfig.json.meta
+│   │   ├── VoleAgentConfig.json
+│   │   └── VoleAgentConfig.json.meta
+│   └── Presets.meta
+├── Data.meta
+├── Materials
+│   ├── BaseBody.mat
+│   ├── BaseBody.mat.meta
+│   ├── Ground.mat
+│   ├── Ground.mat.meta
+│   ├── StoatBody.mat
+│   ├── StoatBody.mat.meta
+│   ├── Transparent.mat
+│   ├── Transparent.mat.meta
+│   ├── VoleBody.mat
+│   └── VoleBody.mat.meta
+├── Materials.meta
+├── Scenes
+│   ├── StoatVsVole
+│   │   ├── LightingData.asset
+│   │   ├── LightingData.asset.meta
+│   │   ├── ReflectionProbe-0.exr
+│   │   └── ReflectionProbe-0.exr.meta
+│   ├── StoatVsVole.meta
+│   ├── StoatVsVole.unity
+│   └── StoatVsVole.unity.meta
+├── Scenes.meta
+├── Scripts
+│   ├── Controllers
+│   │   ├── AgentController.cs
+│   │   └── AgentController.cs.meta
+│   ├── Controllers.meta
+│   ├── Definitions
+│   │   ├── AgentDefinition.cs
+│   │   └── AgentDefinition.cs.meta
+│   ├── Definitions.meta
+│   ├── Global
+│   │   ├── GlobalSettings.cs
+│   │   └── GlobalSettings.cs.meta
+│   ├── Global.meta
+│   ├── Managers
+│   │   ├── AgentManager.cs
+│   │   ├── AgentManager.cs.meta
+│   │   ├── CoverManager.cs
+│   │   ├── CoverManager.cs.meta
+│   │   ├── EnvironmentManager.cs
+│   │   ├── EnvironmentManager.cs.meta
+│   │   ├── EpisodeManager.cs
+│   │   └── EpisodeManager.cs.meta
+│   ├── Managers.meta
+│   ├── RenderFeatures
+│   │   ├── EdgeDetection.cs
+│   │   └── EdgeDetection.cs.meta
+│   ├── RenderFeatures.meta
+│   ├── Spawners
+│   │   ├── AgentSpawner.cs
+│   │   ├── AgentSpawner.cs.meta
+│   │   ├── ElementSpawner.cs
+│   │   ├── ElementSpawner.cs.meta
+│   │   ├── GroundSpawner.cs
+│   │   ├── GroundSpawner.cs.meta
+│   │   ├── WallSpawner.cs
+│   │   └── WallSpawner.cs.meta
+│   ├── Spawners.meta
+│   ├── UI
+│   │   ├── MetricsDisplay.cs
+│   │   └── MetricsDisplay.cs.meta
+│   ├── UI.meta
+│   ├── Utils
+│   │   ├── CameraToggle.cs
+│   │   ├── CameraToggle.cs.meta
+│   │   ├── EnergyRequest.cs
+│   │   ├── EnergyRequest.cs.meta
+│   │   ├── FaceCamera.cs
+│   │   ├── FaceCamera.cs.meta
+│   │   ├── FloatingLabel.cs
+│   │   ├── FloatingLabel.cs.meta
+│   │   ├── Utils.cs
+│   │   └── Utils.cs.meta
+│   └── Utils.meta
+├── Scripts.meta
+├── Settings
+│   ├── New Lighting Settings.lighting
+│   └── New Lighting Settings.lighting.meta
+├── Settings.meta
+├── TFModels
+├── TFModels.meta
+├── Textures
+│   ├── rocky_terrain_02_diff_4k.jpg
+│   ├── rocky_terrain_02_diff_4k.jpg.meta
+│   ├── rocky_terrain_02_disp_4k.png
+│   ├── rocky_terrain_02_disp_4k.png.meta
+│   ├── rocky_terrain_02_nor_gl_4k.exr
+│   ├── rocky_terrain_02_nor_gl_4k.exr.meta
+│   ├── rocky_terrain_02_rough_4k.exr
+│   ├── rocky_terrain_02_rough_4k.exr.meta
+│   ├── rocky_terrain_02_spec_4k.png
+│   └── rocky_terrain_02_spec_4k.png.meta
+└── Textures.meta
