@@ -16,15 +16,18 @@ namespace StoatVsVole
         [Tooltip("Path to the agent preset JSON.")]
         private const string presetBasePath = "Assets/Projects/StoatVsVole/Data/Presets/";
         public string PresetFile = "FlowerConfig.json";
+        public GlobalSettings globalSettings;
 
         public int initialAgentCount = 100;
         public int poolSize = 200;
-        public float agentSize = 1.0f;
+        public int SpawnBurst = 5; // How many to add when pool is empty
+        public int suspendedCount = 0;
 
         private Transform agentParent;
         private List<GameObject> agentPool = new List<GameObject>();
         private List<IAgentLifecycle> activeAgents = new List<IAgentLifecycle>();
         private AgentDefinition agentDefinition;
+
         private string newAgentID;
 
         [SerializeField]
@@ -35,6 +38,7 @@ namespace StoatVsVole
 
         public int PotentialPopulationCount { get; private set; }
         public int ActiveCount => activeAgents.Count;
+        public int PoolCount => agentPool.Count;
         public float ReplicationFraction { get; private set; }
         public float MeanAge { get; private set; }
 
@@ -57,12 +61,12 @@ namespace StoatVsVole
         /// </summary>
         private void Start()
         {
-            coverManager.CreateCoverGrid(agentSize);
+            globalSettings = FindAnyObjectByType<GlobalSettings>();
+            coverManager.CreateCoverGrid();
             LoadAgentDefinition();
             CreateAgentPool();
             SpawnInitialAgents();
         }
-
         /// <summary>
         /// Unity Update. Continuously updates mean age and replication metrics.
         /// </summary>
@@ -88,7 +92,7 @@ namespace StoatVsVole
             }
             else
             {
-                Debug.LogError("Agent preset file not found at: " + path);
+                // Debug.LogError("Agent preset file not found at: " + path);
             }
         }
 
@@ -132,31 +136,67 @@ namespace StoatVsVole
             Bounds totalBound = Utils.CalculateTotalBounds(agentObject);
             if (agentObject != null)
             {
+                agentPool.Remove(agentObject);
                 IAgentLifecycle agentLifecycle = agentObject.GetComponent<IAgentLifecycle>();
                 if (agentLifecycle is AgentController Agent)
                 {
                     Agent.InitializeFromDefinition(agentDefinition);
                     Agent.SetAgentID(id);
                     Agent.SetManager(this);
-                    Agent.RandomizeMaxAge(100);
-                    Agent.RandomizeReplicationAge(25);
+                    // Agent.RandomizeMaxAge(10);
+                    // Agent.RandomizeReplicationAge(5);
                 }
 
                 Vector3 spawnPos;
-
                 if (coverManager.TrySpawnAgent(id, agentDefinition, out spawnPos))
                 {
-                    spawnPos = new Vector3(spawnPos.x, totalBound.extents.y, spawnPos.z);
                     Quaternion spawnRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
                     agentObject.transform.position = spawnPos;
+                    Utils.PositionAgentAtGroundLevel(agentObject);
                     agentObject.transform.rotation = spawnRot;
                     agentObject.SetActive(true);
                     activeAgents.Add(agentLifecycle);
                 }
                 else
                 {
-                    Debug.LogWarning($"AgentManager: Could not place agent {id}, no available positions!");
-                    Destroy(agentObject);
+                    // Debug.LogWarning($"AgentManager: Could not place agent {id}, no available positions!");
+                }
+            }
+        }
+
+
+        private void RespawnAgent(string id)
+        {
+            GameObject agentObject = GetPooledAgent();
+            Bounds totalBound = Utils.CalculateTotalBounds(agentObject);
+            if (agentObject != null)
+            {
+                agentPool.Remove(agentObject);
+                IAgentLifecycle agentLifecycle = agentObject.GetComponent<IAgentLifecycle>();
+                if (agentLifecycle is AgentController Agent)
+                {
+                    Agent.InitializeFromDefinition(agentDefinition);
+                    Agent.SetAgentID(id);
+                    Agent.SetManager(this);
+                    // Agent.RandomizeMaxAge(10);
+                    // Agent.RandomizeReplicationAge(5);
+                }
+
+                Vector3 spawnPos;
+                if (coverManager.TrySpawnAgent(id, agentDefinition, out spawnPos))
+                {
+                    agentObject.transform.position = spawnPos;
+                    Utils.PositionAgentAtGroundLevel(agentObject);
+                    Quaternion spawnRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                    agentObject.transform.rotation = spawnRot;
+                    agentObject.SetActive(true);
+                    activeAgents.Add(agentLifecycle);
+                    // Debug.LogWarning($"Placed Agent with {id}");
+
+                }
+                else
+                {
+                    // Debug.LogWarning($"AgentManager: Could not place agent {id}, no available positions!");
                 }
             }
         }
@@ -173,7 +213,7 @@ namespace StoatVsVole
                     return agentObject;
                 }
             }
-            Debug.LogWarning("No pooled agents available!");
+            // Debug.LogWarning("No pooled agents available!");
             return null;
         }
 
@@ -224,46 +264,45 @@ namespace StoatVsVole
         {
             if (activeAgents.Contains(agent))
             {
-                // Remove agent
+                // Remove agent and place it back in the pool
                 MonoBehaviour agentMono = agent as MonoBehaviour;
                 GameObject agentObject = agentMono.gameObject;
-                activeAgents.Remove(agent);
                 coverManager.RemoveAgent(agent.GetAgentID());
+                activeAgents.Remove(agent);
                 agentObject.SetActive(false);
-
-                // Respawn if replicated
-                if (agent.HasReplicated())
-                {
-                    agent.ResetState();
-                    Vector3 spawnPos;
-                    if (coverManager.TryRespawnAgent(agent.GetAgentID(), agentDefinition, out spawnPos))
-                    {
-                        spawnPos = new Vector3(spawnPos.x, agentObject.transform.position.y, spawnPos.z);
-                        Quaternion spawnRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-                        agentObject.transform.position = spawnPos;
-                        agentObject.transform.rotation = spawnRot;
-                        agentObject.SetActive(true);
-                        activeAgents.Add(agent);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"AgentManager: Could not place new agent {agent.GetAgentID()} by clustering!");
-                        Destroy(agentObject);
-                    }
-                }
+                agentPool.Add(agentObject);
             }
             else
             {
-                Debug.LogWarning("Manager: Tried to expire an agent not in active list!");
+                // Debug.LogWarning("Manager: Tried to expire an agent not in active list!");
             }
         }
 
         /// <summary>
         /// Called when an agent replicates. (Currently empty.)
         /// </summary>
-        public void OnReplicated(IAgentLifecycle agent)
+        public void OnReplicated(IAgentLifecycle parentAgent)
         {
-            // TODO: Implement future replication effects here (e.g., mutation, new agent properties).
+
+            // //Let's do flowers only for now
+            // if (parentAgent.GetAgentClass() != "flower")
+            //     return;
+
+            // Get an agent from the pool
+            if (agentPool.Count <= 0) {
+                // Debug.Log("Pool empty. adding to pool...");
+                for (int i = 0; i < 1; i++)
+                {
+                    Vector3 dummyPosition = Vector3.zero;
+                    Quaternion dummyRotation = Quaternion.identity;
+
+                    GameObject agentObject = agentInstantiator.InstantiateAgentFromDefinition(agentDefinition, dummyPosition, dummyRotation);
+                    agentObject.SetActive(false);
+                    agentPool.Add(agentObject);
+                }
+            }
+            string newID = GenerateUniqueAgentID();
+            RespawnAgent(newID);
         }
 
         #endregion

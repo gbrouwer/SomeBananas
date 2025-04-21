@@ -40,5 +40,26 @@ namespace TrafficJam
 
             return source.Skip(startIndex).Take(n).ToList();
         }
+
+        /// <summary>
+        /// Searches for a component of type T on any sibling GameObject (sharing the same parent).
+        /// </summary>
+        public static T GetSiblingComponent<T>(this GameObject obj) where T : Component
+        {
+            if (obj.transform.parent == null)
+                return null;
+
+            foreach (Transform sibling in obj.transform.parent)
+            {
+                if (sibling != obj.transform)
+                {
+                    T component = sibling.GetComponent<T>();
+                    if (component != null)
+                        return component;
+                }
+            }
+
+            return null;
+        }
     }
 }

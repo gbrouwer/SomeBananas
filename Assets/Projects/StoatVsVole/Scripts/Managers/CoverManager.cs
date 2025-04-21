@@ -33,9 +33,10 @@ namespace StoatVsVole
         public float spawnThreshold = 0.5f;
 
         [Header("Neighbor Placement Settings")]
-        public int minNeighborCount = 3;
-        public float jitterFraction = 0.05f;
+        public int goodEnoughNeighborCount = 4; // Replaces old minNeighborCount
 
+        public float jitterFraction = 0.05f;
+        
         [Header("Randomization Settings")]
         public bool useRandomSeed = true;
         public int randomSeed = 0;
@@ -45,6 +46,7 @@ namespace StoatVsVole
 
         private float[,] noiseMap;
         private string[,] agentGrid; // Holds agentIDs (null = empty)
+        public bool showNoiseTexture = false;
 
         #endregion
 
@@ -53,7 +55,7 @@ namespace StoatVsVole
         /// <summary>
         /// Initializes the cover grid and places static objects according to noise patterns.
         /// </summary>
-        public void CreateCoverGrid(float agentSize)
+        public void CreateCoverGrid()
         {
             if (useRandomSeed)
             {
@@ -63,14 +65,14 @@ namespace StoatVsVole
 
             if (ground == null)
             {
+                
                 Debug.LogError("GroundCoverManager: Ground reference is missing!");
                 return;
             }
-
             SetupGridBasedOnWorldSize();
             GeneratePerlinNoiseMap();
             GenerateDebugTexture();
-            InitializeAvailablePositions(agentSize);
+            InitializeAvailablePositions();
         }
 
         #endregion
@@ -143,17 +145,21 @@ namespace StoatVsVole
             texture.Apply();
 
             Renderer renderer = ground.GetComponent<Renderer>();
-            if (renderer != null)
+            if (renderer != null && showNoiseTexture)
             {
                 renderer.material.mainTexture = texture;
             }
+            else {
+                renderer.material = Resources.Load<Material>("StoatVsVole/Materials/Ground");
+            }
+            
         }
 
         #endregion
 
         #region Placement Logic
 
-        public void InitializeAvailablePositions(float agentSize)
+        public void InitializeAvailablePositions()
         {
             availableCells = new List<Vector2Int>();
 
@@ -259,55 +265,47 @@ namespace StoatVsVole
 
         public bool TrySpawnNewAgentByNeighboringClustering(string agentID, out Vector3 spawnPos)
         {
-            List<Vector2Int> candidateCells = new List<Vector2Int>();
+            List<Vector2Int> emptyCells = new List<Vector2Int>();
 
             for (int x = 0; x < gridWidth; x++)
             {
                 for (int y = 0; y < gridHeight; y++)
                 {
-                    if (agentGrid[x, y] != null)
-                        continue;
-
-                    int neighborCount = 0;
-                    Vector2Int[] neighborOffsets = {
-                        new Vector2Int(-1, 0), new Vector2Int(1, 0),
-                        new Vector2Int(0, -1), new Vector2Int(0, 1),
-                        new Vector2Int(-1, -1), new Vector2Int(-1, 1),
-                        new Vector2Int(1, -1), new Vector2Int(1, 1)
-                    };
-
-                    foreach (var offset in neighborOffsets)
-                    {
-                        int nx = x + offset.x;
-                        int ny = y + offset.y;
-
-                        if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight)
-                        {
-                            if (agentGrid[nx, ny] != null)
-                            {
-                                neighborCount++;
-                                if (neighborCount >= minNeighborCount)
-                                {
-                                    candidateCells.Add(new Vector2Int(x, y));
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    if (agentGrid[x, y] == null)
+                        emptyCells.Add(new Vector2Int(x, y));
                 }
             }
 
-            if (candidateCells.Count == 0)
+            Utils.Shuffle(emptyCells); // Randomize the traversal order
+
+            Vector2Int? bestCell = null;
+            int maxNeighbors = -1;
+
+            foreach (var cell in emptyCells)
             {
-                Debug.LogWarning("CoverManager: No candidate cells found for neighbor-based placement!");
-                spawnPos = Vector3.zero;
-                return false;
+                int neighborCount = CountAgentNeighbors(cell.x, cell.y);
+
+                if (neighborCount > maxNeighbors)
+                {
+                    maxNeighbors = neighborCount;
+                    bestCell = cell;
+
+                    if (neighborCount >= goodEnoughNeighborCount)
+                        break; // ✅ Early exit
+                }
             }
 
-            Vector2Int selectedCell = candidateCells[Random.Range(0, candidateCells.Count)];
-            agentGrid[selectedCell.x, selectedCell.y] = agentID;
-            spawnPos = JitteredWorldPosition(selectedCell);
-            return true;
+            if (bestCell.HasValue)
+            {
+                Vector2Int selected = bestCell.Value;
+                agentGrid[selected.x, selected.y] = agentID;
+                spawnPos = JitteredWorldPosition(selected);
+                return true;
+            }
+
+            spawnPos = Vector3.zero;
+            Debug.LogWarning("CoverManager: No valid grid cell found for clustered flower placement!");
+            return false;
         }
 
         public void RemoveAgent(string agentID)
@@ -329,6 +327,33 @@ namespace StoatVsVole
         #endregion
 
         #region Utility
+
+        private int CountAgentNeighbors(int x, int y)
+        {
+            int count = 0;
+            Vector2Int[] neighborOffsets = {
+                new Vector2Int(-1, 0), new Vector2Int(1, 0),
+                new Vector2Int(0, -1), new Vector2Int(0, 1),
+                new Vector2Int(-1, -1), new Vector2Int(-1, 1),
+                new Vector2Int(1, -1), new Vector2Int(1, 1)
+            };
+
+        foreach (var offset in neighborOffsets)
+        {
+            int nx = x + offset.x;
+            int ny = y + offset.y;
+
+            if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight)
+            {
+                if (agentGrid[nx, ny] != null)
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+        }
 
         private Vector3 GridToWorldPosition(int gridX, int gridY)
         {
@@ -353,8 +378,8 @@ namespace StoatVsVole
             float maxJitterX = (cellWidth / 2f) * jitterFraction;
             float maxJitterZ = (cellHeight / 2f) * jitterFraction;
 
-            float jitterX = Random.Range(-maxJitterX, maxJitterX);
-            float jitterZ = Random.Range(-maxJitterZ, maxJitterZ);
+            float jitterX = 0;//Random.Range(-maxJitterX, maxJitterX);
+            float jitterZ = 0;//Random.Range(-maxJitterZ, maxJitterZ);
 
             return new Vector3(basePosition.x + jitterX, basePosition.y, basePosition.z + jitterZ);
         }

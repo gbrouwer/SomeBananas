@@ -1,5 +1,5 @@
 {
-  "agentClass": "Flower",
+  "agentClass": "flower",
   "agentType": "static",
   "agentTag": "flower",
   "agentPrefabName": "StoatVsVole/Prefabs/BaseAgent",
@@ -10,7 +10,7 @@
   "energyExchangeRate": 1.0,
   "maxAge": 500.0,
   "replicationAge":250,
-  "canExpire": true,
+  "expirationCauses": ["age","energy"],
   "detectableTags": [],
   "energySources": [],
   "energySinks": ["vole"],
@@ -21,19 +21,19 @@
     "constraints": 112
   },
   "bodySettings": {
-    "scaleX": 0.50,
-    "scaleY": 0.50,
-    "scaleZ": 0.50,
+    "scaleX": 0.250,
+    "scaleY": 0.250,
+    "scaleZ": 0.250,
     "offsetX": 0.0,
     "offsetY": 0.0,
     "offsetZ": 0.0,
-    "materialName": "StoatVsVole/Materials/FlowerMaterial"
+    "materialName": "StoatVsVole/Materials/FlowerBody"
   },
   "colliderSettings": {
     "center": { "x": 0.0, "y": 0.0, "z": 0.0 },
     "radius": 0.5, 
     "height": 2.0,
-    "size": { "x": 0.5, "y": 0.5, "z": 0.5 },
+    "size": { "x": 0.25, "y": 0.25, "z": 0.25 },
     "isTrigger": true,
     "providesContacts": true
 },

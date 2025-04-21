@@ -1,4 +1,7 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace StoatVsVole
 {
@@ -46,6 +49,20 @@ namespace StoatVsVole
 
         #endregion
 
+        public static void Shuffle<T>(List<T> list)
+
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = Random.Range(0, n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+        }
+
         #region Private Methods
 
         /// <summary>
@@ -79,6 +96,20 @@ namespace StoatVsVole
             return totalBounds;
         }
 
+        public static void PositionAgentAtGroundLevel(GameObject agentGO)
+        {
+            Bounds bounds = CalculateTotalBounds(agentGO);
+            float heightOffset = bounds.min.y;
+
+            Vector3 currentPosition = agentGO.transform.position;
+            Vector3 correctedPosition = new Vector3(
+                currentPosition.x,
+                currentPosition.y - heightOffset,
+                currentPosition.z
+            );
+
+            agentGO.transform.position = correctedPosition;
+        }
 
         #endregion
     }

@@ -38,7 +38,6 @@ namespace StoatVsVole
             }
 
             GameObject agentGO = Instantiate(agentPrefab, position, rotation);
-
             SetupBody(config, agentGO);
             SetupCollider(config, agentGO);
             SetupSensors(config, agentGO);
@@ -48,7 +47,7 @@ namespace StoatVsVole
             SetupDecisionRequester(config, agentGO);
             SetupModelOverrider(config, agentGO);
 
-            agentGO.transform.position = new Vector3(0, config.bodySettings.scaleY * 0.5f, 0); // TODO: Consider generalizing this ground offset.
+            // agentGO.transform.position = new Vector3(0, config.bodySettings.scaleY * 0.5f, 0); // TODO: Consider generalizing this ground offset.
             return agentGO;
         }
 
@@ -192,6 +191,9 @@ namespace StoatVsVole
                     agentController.agentRotationSpeed = config.motionSettings.agentRotationSpeed;
                     agentController.maxSpeed = config.motionSettings.maxSpeed;
                 }
+
+                agentGO.tag = config.agentTag;
+                agentController.PrepareMaterialAndGradient(); 
             }
         }
 

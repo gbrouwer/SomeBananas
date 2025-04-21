@@ -20,13 +20,18 @@ namespace StoatVsVole
         public string bodyPrefabName;
         public string sensorPrefabName;
 
-        // Energy and Lifecycle Settings
-        public float initialEnergy;
-        public float maxEnergy;
-        public float energyExchangeRate;
-        public bool canExpire = true;
+        // Lifecycle Settings
         public float maxAge;
         public float replicationAge;
+        public List<string> expirationCauses;
+        public bool canExpire => expirationCauses != null && expirationCauses.Count > 0;
+        public bool canExpireFromAge => expirationCauses.Contains("age");
+        public bool canExpireFromEnergy => expirationCauses.Contains("energy");
+
+        // Energy Settings
+        public float maxEnergy;
+        public float energyExchangeRate;
+        public float initialEnergy;
 
         // Tagging and Sensing
         public string agentTag;

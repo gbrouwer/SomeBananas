@@ -2,6 +2,7 @@ using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using UnityEngine.InputSystem; // 👈 Add at top
+using System.Collections.Generic;
 
 namespace TrafficJam
 {
@@ -17,7 +18,7 @@ namespace TrafficJam
         private float currentSpeed;
         private float moveSpeed;
         private float turnSpeed;
-        private float targetSpeed; // Example target speed you want
+        private float targetSpeed;
         private TrafficJamActionAsset trafficJamActionAsset;
         private InputAction moveAction;
         private InputAction steerAction;
@@ -25,7 +26,7 @@ namespace TrafficJam
         private float lateralFrictionStrength;
         private float brakeForce;
         EnvironmentParameters m_ResetParams;
-
+        List<int> visitedWaypoints = new List<int>();
         protected override void Awake()
         {
             trafficJamActionAsset = new TrafficJamActionAsset(); // <- Important! create a new instance
@@ -33,17 +34,20 @@ namespace TrafficJam
             steerAction = trafficJamActionAsset.Car.Steer;
             moveAction.Enable();
             steerAction.Enable();
+            manager = GameObject.Find("TrafficJamManager").GetComponent<TrafficJamManager>();
         }
 
 
         public void ResetAgent()
         {
+            Vector3 environmentOffset = manager.environmentOffset;
+            visitedWaypoints = new List<int>();
             moveSpeed = settings.moveSpeed;
             turnSpeed = settings.turnSpeed;
             targetSpeed = settings.targetSpeed;
             lateralFrictionStrength = settings.lateralFrictionStrength;
             brakeForce = settings.brakeForce;
-            transform.position = new Vector3(0, 1, 0);
+            transform.position = new Vector3(0, 1, 0) + environmentOffset;
             transform.rotation = Quaternion.identity;
             cumulativeDistance = 0;
 
@@ -51,28 +55,29 @@ namespace TrafficJam
 
         public override void Initialize()
         {
+            Vector3 environmentOffset = manager.environmentOffset;
             rb = GetComponent<Rigidbody>();
             rb.interpolation = RigidbodyInterpolation.Interpolate;
             m_ResetParams = Academy.Instance.EnvironmentParameters;
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
-            transform.position = new Vector3(0, 1, 0);
+            transform.position = new Vector3(0, 0, 0) + environmentOffset;
             transform.rotation = Quaternion.identity;
             previousPosition = transform.position;
             cumulativeDistance = 0;
-
         }
-
 
         void FixedUpdate()
         {
             currentSpeed = rb.linearVelocity.magnitude;
+
             float stepDistance = Vector3.Distance(previousPosition, transform.position);
             cumulativeDistance += stepDistance;
             previousPosition = transform.position;
-            float speedReward = CalculateSpeedReward(currentSpeed, targetSpeed, 20,0.01f);
-            AddReward(speedReward); // scale down to keep rewards small
-            AddReward(-0.01f);
+
+            float speedReward = CalculateSpeedReward(currentSpeed, targetSpeed, 10, 0.01f);
+            AddReward(speedReward * 20.0f);
+            AddReward(-0.005f); // small living penalty
         }
 
         private void ApplyLateralFriction()
@@ -146,11 +151,21 @@ namespace TrafficJam
             }
         }
 
+        private void OnTriggerEnter(Collider waypoint)
+        {
+            int waypoint_id = waypoint.GetInstanceID();
+            if (visitedWaypoints.Contains(waypoint_id)) return;
+
+            visitedWaypoints.Add(waypoint_id);
+            AddReward(1.0f);
+
+        }
+
         private void OnCollisionEnter(Collision collision)
         {
             if (collision.gameObject.CompareTag("ground"))
             {
-                SetReward(-1.0f);
+                AddReward(-5.0f);
                 manager.EndEpisode();
             }
         }
@@ -171,6 +186,5 @@ namespace TrafficJam
         {
             return cumulativeDistance;
         }
-
     }
 }

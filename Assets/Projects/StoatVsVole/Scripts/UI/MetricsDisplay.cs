@@ -11,6 +11,7 @@ namespace StoatVsVole
         [Header("UI Elements")]
         public TextMeshProUGUI aliveText;
         public TextMeshProUGUI suspendedText;
+        public TextMeshProUGUI poolSizeText;
         public TextMeshProUGUI meanAgeText;
         public TextMeshProUGUI replicationCountText;
 
@@ -20,6 +21,9 @@ namespace StoatVsVole
                 return;
 
             aliveText.text = "IsActive: " + manager.ActiveCount;
+            suspendedText.text = "IsSuspended: " + manager.ActiveCount;
+            poolSizeText.text = "Pool Size: " + manager.PoolCount;
+
             replicationCountText.text = "Replication Rate: " + manager.ReplicationFraction.ToString("F2");
             meanAgeText.text = "Mean Age: " + manager.MeanAge.ToString("F2");
 

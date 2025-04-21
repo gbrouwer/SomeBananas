@@ -13,20 +13,40 @@ namespace TrafficJam
         public TextMeshProUGUI currentRewardText;
         public TextMeshProUGUI currentPositionText;
         public TextMeshProUGUI cumulativeDistanceText;
+        public TextMeshProUGUI timeScaleText;
+        public TextMeshProUGUI stepLimitText;
+        public TextMeshProUGUI moveSpeedText;
 
+        [Header("Settings")]
+        public TrafficJamSettings settings;
+
+        [Header("Manager")]
         private TrafficJamManager simulationManager; // Assign this in Inspector
         void Start()
         {
             GameObject Env = GameObject.Find("TrafficJamManager");
+            GameObject settingsObj = GameObject.Find("TrafficJamSettings");
             simulationManager = Env.GetComponent<TrafficJamManager>();
-            if (simulationManager == null)
+            settings = settingsObj.GetComponent<TrafficJamSettings>();
+
+                        if (simulationManager == null)
             {
                 Debug.LogError("SimulationManager is not assigned to SimulationUIManager!");
             }
+
+            
         }
 
         void Update()
         {
+
+            if (settings != null)
+            {
+                timeScaleText.text = $"Time Scale: {Time.timeScale:F2}";
+                stepLimitText.text = $"Max Steps: {settings.maxSteps}";
+                moveSpeedText.text = $"Move Speed: {settings.moveSpeed:F1}";
+            }
+
             if (simulationManager == null) return;
 
             // Increment episode count if a new episode starts
@@ -34,7 +54,10 @@ namespace TrafficJam
             currentTickText.text = $"Step: {stepCounter}";
 
             float cumulativeDistance = simulationManager.cumulativeDistance;
-            cumulativeDistanceText.text = $"Cumulative Distance: {cumulativeDistance}";
+            cumulativeDistanceText.text = $"Cumulative Distance: {cumulativeDistance:F2}";
+
+            float speed = simulationManager.currentSpeed;
+            currentSpeedText.text = $"Current Speed: {speed:F2}";
 
             int episodeCounter = simulationManager.currentEpisode;
             currentEpisodeText.text = $"Episode: {episodeCounter}";
@@ -42,24 +65,8 @@ namespace TrafficJam
             Vector3 currentPos = simulationManager.currentPos;
             currentPositionText.text = $"Current position: {currentPos.x:F2} {currentPos.y:F2} {currentPos.z:F2}";
 
-
-            float speed = simulationManager.currentSpeed;
-            currentSpeedText.text = $"Current position: {speed:F2}";
-
             float reward = simulationManager.currentRewardLevel;
             currentRewardText.text = $"Cumulative Reward: {reward:F2}";
-        //     // Fetch data from TrafficJamManager
-        //     int escapedAgents = simulationManager.GetEscapedAgentsCount();
-        //     int outOfBouadsAgents = simulationManager.GetOutOfBoundsAgentsCount();
-        //     float totalRewards = simulationManager.GetTotalAgentRewards();
-        //     int remainingSteps = simulationManager.GetMaxEnvironmentSteps() - simulationManager.GetCurrentTimeSteps();
-
-        //     // Update UI
-        //     episodeText.text = $"Episode: {episodeCounter}";
-        //     escapedAgentsText.text = $"Escaped Agents: {escapedAgents}/{simulationManager.Agents.Count}";
-        //     outOfBouadsAgentsText.text = $"Escaped Agents: {outOfBouadsAgents}/{simulationManager.Agents.Count}";
-        //     totalRewardText.text = $"Total Reward: {totalRewards:F2}";
-        //     timeStepsText.text = $"Remaining Steps: {remainingSteps}";
         }
     }
 }

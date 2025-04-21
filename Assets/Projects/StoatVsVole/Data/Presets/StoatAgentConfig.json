@@ -10,6 +10,7 @@
   "energyExchangeRate": 1.0,
   "maxAge": 500.0,
   "replicationAge":250,
+  "expirationCauses": ["age","energy"],
   "detectableTags": ["vole", "stoat", "wall", "ground", "flower"],
   "energySources": ["vole"],
   "energySinks": [],

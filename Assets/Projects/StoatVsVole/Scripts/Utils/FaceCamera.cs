@@ -18,6 +18,7 @@ namespace StoatVsVole
 
         private void Start()
         {
+
             mainCamera = Camera.main;
         }
 
@@ -25,9 +26,12 @@ namespace StoatVsVole
         {
             if (mainCamera != null)
             {
+                mainCamera = Camera.main;
                 transform.rotation = Quaternion.LookRotation(transform.position - mainCamera.transform.position);
             }
         }
+
+
 
         #endregion
     }

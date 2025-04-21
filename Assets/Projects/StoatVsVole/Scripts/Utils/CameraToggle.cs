@@ -12,6 +12,8 @@ namespace StoatVsVole
         {
             if (cameraA != null && cameraB != null)
             {
+                cameraA.tag = "MainCamera";
+                cameraB.tag = "MainCamera";
                 cameraA.enabled = true;
                 cameraB.enabled = false;
             }
@@ -25,6 +27,7 @@ namespace StoatVsVole
                 {
                     cameraA.enabled = !cameraA.enabled;
                     cameraB.enabled = !cameraB.enabled;
+
                 }
             }
         }
