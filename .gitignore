@@ -10,6 +10,7 @@ docs/node_modules/
 MemoryCaptures/
 UserSettings/
 Blender/
+.config/
 Assets/AssetStoreTools*
 Assets/Packages/
 Assets/SharedAssets/

@@ -61,7 +61,7 @@ namespace TrafficJam
             m_ResetParams = Academy.Instance.EnvironmentParameters;
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
-            transform.position = new Vector3(0, 0, 0) + environmentOffset;
+            transform.position = new Vector3(0, 1, 0) + environmentOffset;
             transform.rotation = Quaternion.identity;
             previousPosition = transform.position;
             cumulativeDistance = 0;
@@ -69,6 +69,7 @@ namespace TrafficJam
 
         void FixedUpdate()
         {
+
             currentSpeed = rb.linearVelocity.magnitude;
 
             float stepDistance = Vector3.Distance(previousPosition, transform.position);
@@ -77,7 +78,7 @@ namespace TrafficJam
 
             float speedReward = CalculateSpeedReward(currentSpeed, targetSpeed, 10, 0.01f);
             AddReward(speedReward * 20.0f);
-            AddReward(-0.005f); // small living penalty
+            AddReward(-0.02f); // small living penalty
         }
 
         private void ApplyLateralFriction()
@@ -117,6 +118,8 @@ namespace TrafficJam
                 // Apply braking force (opposite to current velocity direction)
                 Vector3 brakingForce = -rb.linearVelocity.normalized * brakeForce;
                 rb.AddForce(brakingForce, ForceMode.Acceleration);
+                AddReward(brakingForce.magnitude * -0.001f);
+
             }
 
             // Apply turning
@@ -154,10 +157,16 @@ namespace TrafficJam
         private void OnTriggerEnter(Collider waypoint)
         {
             int waypoint_id = waypoint.GetInstanceID();
-            if (visitedWaypoints.Contains(waypoint_id)) return;
-
-            visitedWaypoints.Add(waypoint_id);
-            AddReward(1.0f);
+            if (visitedWaypoints.Contains(waypoint_id)) 
+            {
+                visitedWaypoints.Add(waypoint_id);
+                SetReward(-10.0f);
+            } 
+            else
+            {
+                visitedWaypoints.Add(waypoint_id);
+                AddReward(10.0f);
+            }
 
         }
 
@@ -165,7 +174,7 @@ namespace TrafficJam
         {
             if (collision.gameObject.CompareTag("ground"))
             {
-                AddReward(-5.0f);
+                SetReward(-5.0f);
                 manager.EndEpisode();
             }
         }

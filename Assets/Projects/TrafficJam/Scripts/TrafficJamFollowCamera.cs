@@ -8,6 +8,7 @@ public class FollowCamera : MonoBehaviour
 
     private void LateUpdate()
     {
+        
         if (target == null)
             return;
 

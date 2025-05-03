@@ -73,6 +73,7 @@ namespace StoatVsVole
         private EnergyRequest activeOutgoingRequest = null;
         private AgentController targetResourceAgent;
         private Gradient energyGradient;
+        private MaterialPropertyBlock propertyBlock;
 
         [Header("Agent Settings")]
         public string agentType;
@@ -108,7 +109,8 @@ namespace StoatVsVole
         public float longevityRewardPerStep;
         public float expirationWithoutReplicationPenalty;
         public float replicationAward;
-
+        public float energyDrainRate;
+        public float lowEnergyPenaltyFactor;
 
         #endregion
 
@@ -144,6 +146,8 @@ namespace StoatVsVole
                 return;
 
             HandleAging();
+            HandleEnergy();
+            HandleLongevityReward();
 
             if (targetResourceAgent == null || targetResourceAgent.IsExpired())
             {
@@ -212,6 +216,8 @@ namespace StoatVsVole
 
                 // Lifecycle Settings
                 maxAge = agentDefinition.maxAge;
+
+                // lowEnergyPenaltyFactor = agentDefinition
                 replicationAge = agentDefinition.replicationAge;
                 canExpireFromAge = agentDefinition.canExpireFromAge;
                 canExpireFromEnergy = agentDefinition.canExpireFromEnergy;
@@ -228,6 +234,8 @@ namespace StoatVsVole
                 longevityRewardPerStep = agentDefinition.rewardSettings.longevityRewardPerStep;
                 expirationWithoutReplicationPenalty = agentDefinition.rewardSettings.expirationWithoutReplicationPenalty;
                 replicationAward = agentDefinition.rewardSettings.replicationAward;
+                energyDrainRate = agentDefinition.rewardSettings.energyDrainRate;
+                lowEnergyPenaltyFactor = agentDefinition.rewardSettings.lowEnergyPenaltyFactor;
             }
 
             age = 0f;
@@ -284,6 +292,10 @@ namespace StoatVsVole
                 {
                     energy += amountReceived;
                     energy = Mathf.Min(energy, maxEnergy);
+
+                    // ✅ Reward for successfully gaining energy
+                    AddReward(amountReceived * 0.5f);
+
                     activeOutgoingRequest.provider.ConfirmEnergyTransfer(amountReceived);
                     activeOutgoingRequest.isCompleted = true;
                 }
@@ -512,6 +524,30 @@ namespace StoatVsVole
             }
         }
 
+        private void HandleEnergy()
+        {
+            // Passive drain over time
+            float energyDrainRate = 50.0f;
+            energy -= Time.fixedDeltaTime * energyDrainRate;
+
+            // Clamp to non-negative
+            energy = Mathf.Max(0f, energy);
+
+            // Reward shaping: penalize being under 50% max energy
+            float energyRatio = energy / maxEnergy;
+
+            if (energyRatio < 0.5f)
+            {
+                float penalty = (0.5f - energyRatio) * lowEnergyPenaltyFactor;
+                AddReward(-penalty);
+            }
+
+            // Optional debug
+            debugEnergy = energy;
+            debugMaxEnergy = maxEnergy;
+        }
+
+
         protected virtual bool CheckExpirationConditions()
         {
 
@@ -546,6 +582,7 @@ namespace StoatVsVole
         public void Replicate()
         {
             hasReplicated = true;
+            AddReward(replicationAward);  // ✅ Add this
             manager.OnReplicated(this);
         }
 
@@ -610,29 +647,43 @@ namespace StoatVsVole
 
         #region Debugging
 
-private void UpdateVisualState()
-{
-    if (agentMaterialInstance == null)
-        return;
+        private void UpdateVisualState()
+        {
+            if (bodyRenderer == null)
+                return;
 
-    float ratio = Mathf.Clamp01(energy / maxEnergy);
-    Color energyColor;
+            float ratio = Mathf.Clamp01(energy / maxEnergy);
+            Color energyColor;
 
-    if (CompareTag("vole"))
-    {
-        energyColor = Color.Lerp(Color.black, Color.yellow, ratio);
-    }
-    else if (CompareTag("flower"))
-    {
-        energyColor = Color.Lerp(Color.red, Color.white, ratio);
-    }
-    else
-    {
-        energyColor = Color.Lerp(Color.gray, Color.white, ratio);
-    }
+            if (CompareTag("vole"))
+            {
+                if (ratio < 0.5f)
+                {
+                    energyColor = Color.Lerp(Color.red, Color.green, ratio * 2f);
+                    print(ratio);
+                }
+                else
+                {
+                    energyColor = Color.Lerp(Color.green, Color.yellow, (ratio - 0.5f) * 2f);
+                }
+            }
+            else if (CompareTag("flower"))
+            {
+                energyColor = Color.Lerp(Color.red, Color.white, ratio);
+            }
+            else
+            {
+                energyColor = Color.Lerp(Color.gray, Color.white, ratio);
+            }
 
-    agentMaterialInstance.color = energyColor;
-}
+            if (propertyBlock == null)
+                propertyBlock = new MaterialPropertyBlock();
+
+            print(energyColor);
+            bodyRenderer.GetPropertyBlock(propertyBlock);
+            propertyBlock.SetColor("_BaseColor", energyColor);  // ✅ Works with URP Lit
+            bodyRenderer.SetPropertyBlock(propertyBlock);
+        }
 
 
         private void UpdateLabel()
@@ -640,10 +691,23 @@ private void UpdateVisualState()
             if (floatingLabel != null && manager.globalSettings.labelList.Contains(agentTag))
             {
                 string labelText = $"{agentTag}\nEnergy: {energy:F1}";
-                if (withEnergySource) labelText += "\nExtracting";
-                if (withEnergySink) labelText += "\nBeing Drained";
 
-                floatingLabel.SetLabel(labelText, Color.white, 4.0f, new Vector3(0, agentDefinition.bodySettings.scaleY + 0.25f, 0));
+                if (withEnergySource)
+                    labelText += "\nExtracting";
+
+                if (withEnergySink)
+                    labelText += "\nBeing Drained";
+
+                // ➕ Add reward display
+                labelText += $"\nReward: {GetCumulativeReward():F2}";
+
+                floatingLabel.SetLabel(
+                    labelText,
+                    Color.white,
+                    4.0f,
+                    new Vector3(0, agentDefinition.bodySettings.scaleY + 0.25f, 0)
+                );
+
                 lastLabelText = labelText;
             }
             else
@@ -673,11 +737,10 @@ private void UpdateVisualState()
 
             if (CompareTag("vole"))
             {
-                print("here");
                 colorKeys = new GradientColorKey[]
                 {
-            new GradientColorKey(Color.blue, 0f),
-            new GradientColorKey(Color.magenta, 1f)
+                new GradientColorKey(Color.blue, 0f),
+                new GradientColorKey(Color.magenta, 1f)
                 };
             }
             else if (CompareTag("flower"))
@@ -706,21 +769,19 @@ private void UpdateVisualState()
             energyGradient.SetKeys(colorKeys, alphaKeys);
         }
 
-public void PrepareMaterialAndGradient()
-{
-    bodyRenderer = GetComponentInChildren<Renderer>();
+        public void PrepareMaterialAndGradient()
+        {
+            bodyRenderer = GetComponentInChildren<Renderer>();
 
-    if (bodyRenderer != null)
-    {
-        var uniqueMat = new Material(bodyRenderer.material);
-        bodyRenderer.material = uniqueMat;
-        agentMaterialInstance = uniqueMat;
+            if (bodyRenderer != null)
+            {
+                if (propertyBlock == null)
+                    propertyBlock = new MaterialPropertyBlock();
 
-        SetupEnergyGradientBasedOnTag();
-        UpdateVisualState();
+                SetupEnergyGradientBasedOnTag();
+                UpdateVisualState();  // This now uses the property block
+            }
+        }
+
     }
-}
-
-    }
-
 }

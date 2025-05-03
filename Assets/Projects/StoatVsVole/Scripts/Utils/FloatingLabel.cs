@@ -66,7 +66,7 @@ namespace StoatVsVole
         // Add and configure TextMeshPro
         textMesh = label.AddComponent<TextMeshPro>();
         textMesh.text = "";
-        textMesh.fontSize = 6;
+        textMesh.fontSize = 100;
         textMesh.color = Color.white;
         textMesh.alignment = TextAlignmentOptions.Center;
         textMesh.enableAutoSizing = false;
@@ -79,7 +79,7 @@ namespace StoatVsVole
         textMesh.font = Resources.Load<TMP_FontAsset>("Fonts/Raleway-Regular SDF"); // Adjust path if needed
 
         // Shrink if text looks massive
-        label.transform.localScale = Vector3.one * 0.3f;
+        label.transform.localScale = Vector3.one * 1.0f;
 
         // Add script to make it face the camera
         label.AddComponent<FaceCamera>();

@@ -155,6 +155,8 @@ namespace StoatVsVole
         public float longevityRewardPerStep = 0.01f;
         public float expirationWithoutReplicationPenalty = -1.0f;
         public float replicationAward = 2.0f;
+        public float lowEnergyPenaltyFactor = 0.3f;  // ✅ new field
+        public float energyDrainRate = 50.0f;
     }
 
     /// <summary>

@@ -10,6 +10,7 @@ namespace TrafficJam
         EnvironmentParameters m_ResetParams;
 
         [Header("Track Textures (from Resources/Tracks)")]
+        public bool testing = false;
         public int activeTrack = -1;
         public int currentEpisode = 0;
 
@@ -63,7 +64,7 @@ namespace TrafficJam
             {
                 Vector3 SpawnPos = transform.position;
                 Quaternion SpawnRot = Quaternion.identity;
-                SpawnPos = new Vector3(0, 0.5f, 0) + environmentOffset;
+                SpawnPos = new Vector3(0, 0.0f, 0) + environmentOffset;
                 GameObject newAgent = Instantiate(agentPrefab, SpawnPos, SpawnRot);
                 TrafficJamAgent agent = newAgent.GetComponent<TrafficJamAgent>();
                 agent.manager = this;

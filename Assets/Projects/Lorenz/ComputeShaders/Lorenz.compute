@@ -1,0 +1,25 @@
+// Lorenz.compute
+#pragma kernel CSMain
+
+RWStructuredBuffer<float3> positions;
+
+float a = 10.0;
+float b = 28.0;
+float c = 8.0 / 3.0;
+float dt;
+
+[numthreads(64, 1, 1)]
+void CSMain(uint id : SV_DispatchThreadID)
+{
+    float3 p = positions[id];
+
+    float dx = a * (p.y - p.x);
+    float dy = p.x * (b - p.z) - p.y;
+    float dz = p.x * p.y - c * p.z;
+
+    p.x += dt * dx;
+    p.y += dt * dy;
+    p.z += dt * dz;
+
+    positions[id] = p;
+}

@@ -5,42 +5,63 @@
   "agentPrefabName": "StoatVsVole/Prefabs/BaseAgent",
   "bodyPrefabName": "StoatVsVole/Prefabs/VoleBody",
   "sensorPrefabName": "StoatVsVole/Prefabs/VoleSensor",
-  "maxAge": 1000,
-  "replicationAge":500,
-  "initialEnergy": 500.0,
+  "maxAge": 5000,
+  "replicationAge": 500,
+  "initialEnergy": 250.0,
   "maxEnergy": 1000.0,
   "energyExchangeRate": 1.0,
-  "expirationCauses": ["age","energy"],
-  "detectableTags": ["vole", "stoat", "wall", "ground", "flower"],
-  "energySources": ["flower"],
-  "energySinks": ["stoat"],
+  "expirationCauses": [
+    "age",
+    "energy"
+  ],
+  "detectableTags": [
+    "vole",
+    "stoat",
+    "wall",
+    "ground",
+    "flower"
+  ],
+  "energySources": [
+    "flower"
+  ],
+  "energySinks": [
+    "stoat"
+  ],
   "rigidbodySettings": {
     "mass": 10,
     "linearDamping": 4,
     "angularDamping": 0.05,
     "constraints": 112
+  },
+  "bodySettings": {
+    "scaleX": 0.5,
+    "scaleY": 0.5,
+    "scaleZ": 0.5,
+    "offsetX": 0.0,
+    "offsetY": 0.0,
+    "offsetZ": 0.0,
+    "materialName": "StoatVsVole/Materials/VoleMaterial"
+  },
+  "colliderSettings": {
+    "center": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
-    "bodySettings": {
-      "scaleX": 0.5,
-      "scaleY": 0.5,
-      "scaleZ": 0.5,
-      "offsetX": 0.0,
-      "offsetY": 0.0,
-      "offsetZ": 0.0,
-      "materialName": "StoatVsVole/Materials/VoleMaterial"
+    "radius": 0.5,
+    "height": 2.0,
+    "size": {
+      "x": 0.5,
+      "y": 0.5,
+      "z": 0.5
     },
-    "colliderSettings": {
-      "center": { "x": 0.0, "y": 0.0, "z": 0.0 },
-      "radius": 0.5, 
-      "height": 2.0,
-      "size": { "x": 0.5, "y": 0.5, "z": 0.5 },
-      "isTrigger": false,
-      "providesContacts": true
-    },
+    "isTrigger": false,
+    "providesContacts": true
+  },
   "behaviorParameterSettings": {
     "enabled": true,
     "behaviorName": "VoleBehavior",
-    "behaviorType": "HeuristicOnly",
+    "behaviorType": "Default",
     "teamID": 0,
     "inferenceDevice": "ComputeShader"
   },
@@ -55,12 +76,20 @@
     "raysPerDirection": 3,
     "maxRayDegrees": 70.0,
     "rayLength": 15.0,
-    "detectableTags": ["vole", "stoat", "wall", "ground", "flower"]
+    "detectableTags": [
+      "vole",
+      "stoat",
+      "wall",
+      "ground",
+      "flower"
+    ]
   },
   "rewardSettings": {
-    "longevityRewardPerStep": -0.001,
+    "longevityRewardPerStep": 0.001,
     "expirationWithoutReplicationPenalty": -1.0,
-    "reproductionReward": 2.0
+    "replicationAward": 2.0,
+    "lowEnergyPenaltyFactor": 0.3,
+    "energyDrainRate": 50.0
   },
   "motionSettings": {
     "agentRunSpeed": 3.0,
@@ -71,5 +100,5 @@
     "hasOverrides": true,
     "debugCommandLineOverride": "",
     "originalBehaviorName": "VoleBehavior"
-  }  
+  }
 }

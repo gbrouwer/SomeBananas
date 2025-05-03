@@ -16,9 +16,11 @@ namespace StoatVsVole
 
         [Header("Vole Settings")]
         public List<string> labelList = new List<string>();
+        
 
         void Start() {
             labelList.Clear();
+            labelList.Add("vole");
         }
 
         public void ToggleLabels(string agentClass)

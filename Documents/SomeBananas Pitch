@@ -1,0 +1,33 @@
+### SomeBananas: A Simulation Platform for Complex Systems, Emergent Behavior, and Curious Minds
+
+**What is SomeBananas?**
+SomeBananas is a simulation-first platform that empowers users to explore, build, and learn from complex systems — physical, social, informational, or conceptual — through agent-based modeling and emergent dynamics. Built on Unity and powered by reinforcement learning and neural networks, it offers an interactive sandbox where behaviors aren't just programmed — they emerge.
+
+**The Problem**
+We live in a world of complexity. Social media dynamics, climate systems, idea propagation, market collapses — none of these can be reduced to simple equations or top-down models. Yet the tools available for exploring them are either too technical, too abstract, or too limited in scope.
+
+**The Vision**
+SomeBananas provides a bridge between intuitive interaction and rigorous simulation. It lets users model everything from traffic systems to belief networks — all grounded in physics, biology, and computation. It turns the intangible into the observable. Think of it as an experimental playground for complexity.
+
+**Who It’s For**
+- Researchers modeling emergent behavior
+- Educators teaching systems thinking
+- Designers and futurists prototyping sociotechnical systems
+- Artists exploring conceptual landscapes
+- Curious minds who want to simulate culture, evolution, economics, attention, or even memes
+
+**Core Features**
+- 🎮 **Physics-based Agents**: Built in Unity with real-world dynamics, sensors, and collisions
+- 🧠 **Learning through ML-Agents**: Agents train via reinforcement learning, creating truly adaptive behaviors
+- 🧩 **Environment-Driven Complexity**: Systems evolve from bottom-up rules, not top-down scripts
+- 🧱 **Modular Components**: Build worlds from tiles, triggers, scripts, and goals — no deep code required
+- 🧪 **Observation & Metrics**: Watch systems evolve, fail, stabilize, or explode — and measure it all
+
+**Why It Matters**
+SomeBananas isn’t just a tool. It’s a philosophy in action: that understanding emerges not from static truths, but from dynamic interaction. By letting users tinker with simulations, tweak parameters, and watch the unexpected unfold, we help them ask better questions about the systems that shape our world.
+
+**Call to Action**
+We’re building SomeBananas to help people think better — not just about agents and actions, but about life itself. If you're a researcher, developer, educator, or just someone with a question that won’t leave you alone, we invite you to model it with us.
+
+
+

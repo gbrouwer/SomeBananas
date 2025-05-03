@@ -8,11 +8,22 @@
   "initialEnergy": 100.0,
   "maxEnergy": 200.0,
   "energyExchangeRate": 1.0,
-  "maxAge": 500.0,
-  "replicationAge":250,
-  "expirationCauses": ["age","energy"],
-  "detectableTags": ["vole", "stoat", "wall", "ground", "flower"],
-  "energySources": ["vole"],
+  "maxAge": 50000.0,
+  "replicationAge": 250,
+  "expirationCauses": [
+    "age",
+    "energy"
+  ],
+  "detectableTags": [
+    "vole",
+    "stoat",
+    "wall",
+    "ground",
+    "flower"
+  ],
+  "energySources": [
+    "vole"
+  ],
   "energySinks": [],
   "rigidbodySettings": {
     "mass": 10,
@@ -30,13 +41,21 @@
     "materialName": "StoatVsVole/Materials/FlowerMaterial"
   },
   "colliderSettings": {
-    "center": { "x": 0.0, "y": 0.0, "z": 0.0 },
-    "radius": 0.5, 
+    "center": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "radius": 0.5,
     "height": 2.0,
-    "size": { "x": 0.5, "y": 0.5, "z": 0.5 },
+    "size": {
+      "x": 0.5,
+      "y": 0.5,
+      "z": 0.5
+    },
     "isTrigger": false,
     "providesContacts": true
-},
+  },
   "behaviorParameterSettings": {
     "enabled": true,
     "behaviorName": "StoatBehavior",
@@ -55,12 +74,20 @@
     "raysPerDirection": 3,
     "maxRayDegrees": 70.0,
     "rayLength": 20.0,
-    "detectableTags": ["vole", "stoat", "wall", "ground", "flower"]
+    "detectableTags": [
+      "vole",
+      "stoat",
+      "wall",
+      "ground",
+      "flower"
+    ]
   },
   "rewardSettings": {
-    "longevityRewardPerStep": -0.002,
+    "longevityRewardPerStep": 0.001,
     "expirationWithoutReplicationPenalty": -1.0,
-    "reproductionReward": 3.0
+    "replicationAward": 2.0,
+    "lowEnergyPenaltyFactor": 0.3,
+    "energyDrainRate": 50.0
   },
   "motionSettings": {
     "agentRunSpeed": 5.0,

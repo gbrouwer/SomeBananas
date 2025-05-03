@@ -99,7 +99,7 @@ namespace StoatVsVole
                         Material mat = Resources.Load<Material>(config.bodySettings.materialName);
                         if (mat != null)
                         {
-                            renderer.material = mat;
+                            renderer.sharedMaterial = mat;
                         }
                     }
                 }
@@ -178,12 +178,14 @@ namespace StoatVsVole
                 agentController.energySources = config.energySources;
                 agentController.agentType = config.agentType;
 
-                if (config.rewardSettings != null)
-                {
-                    agentController.longevityRewardPerStep = config.rewardSettings.longevityRewardPerStep;
-                    agentController.expirationWithoutReplicationPenalty = config.rewardSettings.expirationWithoutReplicationPenalty;
-                    agentController.replicationAward = config.rewardSettings.replicationAward;
-                }
+            if (config.rewardSettings != null)
+            {
+                agentController.longevityRewardPerStep = config.rewardSettings.longevityRewardPerStep;
+                agentController.expirationWithoutReplicationPenalty = config.rewardSettings.expirationWithoutReplicationPenalty;
+                agentController.replicationAward = config.rewardSettings.replicationAward;
+                agentController.lowEnergyPenaltyFactor = config.rewardSettings.lowEnergyPenaltyFactor;
+                agentController.energyDrainRate = config.rewardSettings.energyDrainRate;
+            }
 
                 if (config.motionSettings != null)
                 {
