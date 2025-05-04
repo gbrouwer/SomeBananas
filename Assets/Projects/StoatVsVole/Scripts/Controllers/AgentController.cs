@@ -93,7 +93,6 @@ namespace StoatVsVole
         private Renderer bodyRenderer;
         private Material agentMaterialInstance;
 
-
         [Header("Debug Settings")]
         private Color originalColor;
         private Color triggeredColor = Color.yellow;
@@ -112,6 +111,7 @@ namespace StoatVsVole
         public float energyDrainRate;
         public float lowEnergyPenaltyFactor;
 
+
         #endregion
 
         #region Unity Lifecycle Methods
@@ -119,12 +119,46 @@ namespace StoatVsVole
         /// <summary>
         /// Unity Awake. Initializes core components.
         /// </summary>
+        protected override void OnEnable()
+        {
+            if (agentType != "dynamic")
+            {
+                print($"[OnEnable] Skipping ML-Agents registration for static agent: {name}");
+                return;  // Prevents base.Agent.OnEnable() from being called
+            }
+
+            base.OnEnable();
+        }
+
+        protected override void OnDisable()
+        {
+            if (agentType != "dynamic")
+            {
+                print($"[OnDisable] Skipping ML cleanup for static agent: {name}");
+                return;
+            }
+
+            base.OnDisable();
+        }
         protected new void Awake()
         {
             rb = GetComponent<Rigidbody>();
             agentCollider = GetComponent<Collider>();
             sensors = GetComponentsInChildren<RayPerceptionSensorComponent3D>();
         }
+
+        // public override void Initialize()
+        // {
+        //     if (agentType != "dynamic")
+        //     {
+        //         print("Turning flower inactive");
+        //         // Prevent non-learning agents from initializing with ML-Agents
+        //         enabled = false;
+        //         return;
+        //     }
+
+        //     base.Initialize(); // only for voles, etc.
+        // }
 
         /// <summary>
         /// Unity Start. Initializes debug label.
@@ -422,6 +456,7 @@ namespace StoatVsVole
 
             if (!isSuspended)
             {
+                print(actionBuffers.DiscreteActions);
                 MoveAgent(actionBuffers.DiscreteActions);
             }
         }
@@ -478,7 +513,6 @@ namespace StoatVsVole
             var dirToGo = Vector3.zero;
             var rotateDir = Vector3.zero;
             var action = act[0];
-
             switch (action)
             {
                 case 1:
@@ -526,27 +560,27 @@ namespace StoatVsVole
 
         private void HandleEnergy()
         {
-            // Passive drain over time
-            float energyDrainRate = 50.0f;
-            energy -= Time.fixedDeltaTime * energyDrainRate;
-
-            // Clamp to non-negative
-            energy = Mathf.Max(0f, energy);
-
-            // Reward shaping: penalize being under 50% max energy
-            float energyRatio = energy / maxEnergy;
-
-            if (energyRatio < 0.5f)
+            // Only dynamic agents (e.g., voles) lose energy passively
+            if (isDynamic)
             {
-                float penalty = (0.5f - energyRatio) * lowEnergyPenaltyFactor;
-                AddReward(-penalty);
+                energy -= Time.fixedDeltaTime * energyDrainRate;
+                energy = Mathf.Max(0f, energy);
+
+                float energyRatio = energy / maxEnergy;
+
+                if (energyRatio < 0.5f)
+                {
+                    float penalty = lowEnergyPenaltyFactor;// (0.5f - energyRatio) * lowEnergyPenaltyFactor;
+                    AddReward(-penalty);
+                }
+
+                HandleLongevityReward();  // still dynamic-only
             }
 
-            // Optional debug
+            // Debug info
             debugEnergy = energy;
             debugMaxEnergy = maxEnergy;
         }
-
 
         protected virtual bool CheckExpirationConditions()
         {
@@ -633,7 +667,7 @@ namespace StoatVsVole
 
         public void RandomizeMaxAge(float standardDeviation)
         {
-            float randomized = Utils.RandomNormal(maxAge * 0.5f, standardDeviation);
+            float randomized = Utils.RandomNormal(maxAge, standardDeviation);
             maxAge = Mathf.Max(1f, randomized);
         }
 
@@ -660,7 +694,6 @@ namespace StoatVsVole
                 if (ratio < 0.5f)
                 {
                     energyColor = Color.Lerp(Color.red, Color.green, ratio * 2f);
-                    print(ratio);
                 }
                 else
                 {
@@ -679,7 +712,6 @@ namespace StoatVsVole
             if (propertyBlock == null)
                 propertyBlock = new MaterialPropertyBlock();
 
-            print(energyColor);
             bodyRenderer.GetPropertyBlock(propertyBlock);
             propertyBlock.SetColor("_BaseColor", energyColor);  // ✅ Works with URP Lit
             bodyRenderer.SetPropertyBlock(propertyBlock);

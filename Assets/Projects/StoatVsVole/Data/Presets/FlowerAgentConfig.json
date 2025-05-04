@@ -5,11 +5,11 @@
   "agentPrefabName": "StoatVsVole/Prefabs/BaseAgent",
   "bodyPrefabName": "StoatVsVole/Prefabs/FlowerBody",
   "sensorPrefabName": "",
+  "maxAge": 2500.0,
+  "replicationAge": 1250.0,
   "initialEnergy": 100.0,
   "maxEnergy": 200.0,
   "energyExchangeRate": 1.0,
-  "maxAge": 200.0,
-  "replicationAge": 100,
   "expirationCauses": [
     "age",
     "energy"

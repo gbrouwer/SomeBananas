@@ -24,8 +24,8 @@ namespace StoatVsVole
         public int suspendedCount = 0;
 
         private Transform agentParent;
-        private List<GameObject> agentPool = new List<GameObject>();
-        private List<IAgentLifecycle> activeAgents = new List<IAgentLifecycle>();
+        public List<GameObject> agentPool = new List<GameObject>();
+        public List<IAgentLifecycle> activeAgents = new List<IAgentLifecycle>();
         private AgentDefinition agentDefinition;
 
         private string newAgentID;
@@ -143,8 +143,8 @@ namespace StoatVsVole
                     Agent.InitializeFromDefinition(agentDefinition);
                     Agent.SetAgentID(id);
                     Agent.SetManager(this);
-                    // Agent.RandomizeMaxAge(10);
-                    // Agent.RandomizeReplicationAge(5);
+                    Agent.RandomizeMaxAge(50);
+                    Agent.RandomizeReplicationAge(50);
                 }
 
                 Vector3 spawnPos;
@@ -178,8 +178,8 @@ namespace StoatVsVole
                     Agent.InitializeFromDefinition(agentDefinition);
                     Agent.SetAgentID(id);
                     Agent.SetManager(this);
-                    // Agent.RandomizeMaxAge(10);
-                    // Agent.RandomizeReplicationAge(5);
+                    Agent.RandomizeMaxAge(50);
+                    Agent.RandomizeReplicationAge(50);
                 }
 
                 Vector3 spawnPos;
@@ -191,12 +191,11 @@ namespace StoatVsVole
                     agentObject.transform.rotation = spawnRot;
                     agentObject.SetActive(true);
                     activeAgents.Add(agentLifecycle);
-                    // Debug.LogWarning($"Placed Agent with {id}");
 
                 }
                 else
                 {
-                    // Debug.LogWarning($"AgentManager: Could not place agent {id}, no available positions!");
+                    Debug.LogWarning($"AgentManager: Could not place agent {id}, no available positions!");
                 }
             }
         }
@@ -284,12 +283,9 @@ namespace StoatVsVole
         public void OnReplicated(IAgentLifecycle parentAgent)
         {
 
-            // //Let's do flowers only for now
-            // if (parentAgent.GetAgentClass() != "flower")
-            //     return;
-
             // Get an agent from the pool
-            if (agentPool.Count <= 0) {
+            if (agentPool.Count <= 0)
+            {
                 // Debug.Log("Pool empty. adding to pool...");
                 for (int i = 0; i < 1; i++)
                 {
@@ -306,5 +302,50 @@ namespace StoatVsVole
         }
 
         #endregion
+
+public bool HasActiveDynamicAgents()
+{
+    foreach (var agent in activeAgents)
+    {
+    if (agent.IsDynamic() && agent.IsActive())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+        public void Restart()
+        {
+            // Clear all active agents
+            foreach (var agent in activeAgents)
+            {
+                var agentMono = agent as MonoBehaviour;
+                if (agentMono != null)
+                {
+                    Destroy(agentMono.gameObject);
+                }
+            }
+            activeAgents.Clear();
+
+            // Clear all pooled agents
+            foreach (var pooledGO in agentPool)
+            {
+                if (pooledGO != null)
+                {
+                    Destroy(pooledGO);
+                }
+            }
+            agentPool.Clear();
+
+            // Reset cover manager and definition if needed
+            coverManager.CreateCoverGrid();  // Rebuild positions
+            LoadAgentDefinition();  // Reload JSON in case it changed
+
+            // Recreate pool and spawn agents
+            CreateAgentPool();
+            SpawnInitialAgents();
+
+            Debug.Log($"{gameObject.name}: Restarted with {PotentialPopulationCount} agents.");
+        }
     }
 }

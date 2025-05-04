@@ -5,9 +5,9 @@
   "agentPrefabName": "StoatVsVole/Prefabs/BaseAgent",
   "bodyPrefabName": "StoatVsVole/Prefabs/VoleBody",
   "sensorPrefabName": "StoatVsVole/Prefabs/VoleSensor",
-  "maxAge": 5000,
+  "maxAge": 1000,
   "replicationAge": 500,
-  "initialEnergy": 250.0,
+  "initialEnergy": 500.0,
   "maxEnergy": 1000.0,
   "energyExchangeRate": 1.0,
   "expirationCauses": [
@@ -63,7 +63,7 @@
     "behaviorName": "VoleBehavior",
     "behaviorType": "Default",
     "teamID": 0,
-    "inferenceDevice": "ComputeShader"
+    "inferenceDevice": "Default"
   },
   "decisionRequesterSettings": {
     "enabled": true,
@@ -75,7 +75,7 @@
     "sensorName": "VoleSensor",
     "raysPerDirection": 3,
     "maxRayDegrees": 70.0,
-    "rayLength": 15.0,
+    "rayLength": 10.0,
     "detectableTags": [
       "vole",
       "stoat",
@@ -88,8 +88,8 @@
     "longevityRewardPerStep": 0.001,
     "expirationWithoutReplicationPenalty": -1.0,
     "replicationAward": 2.0,
-    "lowEnergyPenaltyFactor": 0.3,
-    "energyDrainRate": 50.0
+    "lowEnergyPenaltyFactor": 0.003,
+    "energyDrainRate": 1.0
   },
   "motionSettings": {
     "agentRunSpeed": 3.0,

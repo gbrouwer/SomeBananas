@@ -36,7 +36,7 @@ namespace StoatVsVole
         public int goodEnoughNeighborCount = 4; // Replaces old minNeighborCount
 
         public float jitterFraction = 0.05f;
-        
+
         [Header("Randomization Settings")]
         public bool useRandomSeed = true;
         public int randomSeed = 0;
@@ -65,7 +65,7 @@ namespace StoatVsVole
 
             if (ground == null)
             {
-                
+
                 Debug.LogError("GroundCoverManager: Ground reference is missing!");
                 return;
             }
@@ -149,10 +149,11 @@ namespace StoatVsVole
             {
                 renderer.material.mainTexture = texture;
             }
-            else {
+            else
+            {
                 renderer.material = Resources.Load<Material>("StoatVsVole/Materials/Ground");
             }
-            
+
         }
 
         #endregion
@@ -196,7 +197,6 @@ namespace StoatVsVole
 
         public bool TrySpawnStaticAgent(string agentID, out Vector3 spawnPos)
         {
-
 
             if (availableCells.Count == 0)
             {
@@ -317,6 +317,10 @@ namespace StoatVsVole
                     if (agentGrid[x, y] == agentID)
                     {
                         agentGrid[x, y] = null;
+
+                        // 🛠️ Fix: re-add the cell to availableCells
+                        availableCells.Add(new Vector2Int(x, y));
+
                         return;
                     }
                 }
@@ -338,21 +342,21 @@ namespace StoatVsVole
                 new Vector2Int(1, -1), new Vector2Int(1, 1)
             };
 
-        foreach (var offset in neighborOffsets)
-        {
-            int nx = x + offset.x;
-            int ny = y + offset.y;
-
-            if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight)
+            foreach (var offset in neighborOffsets)
             {
-                if (agentGrid[nx, ny] != null)
+                int nx = x + offset.x;
+                int ny = y + offset.y;
+
+                if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight)
                 {
-                    count++;
+                    if (agentGrid[nx, ny] != null)
+                    {
+                        count++;
+                    }
                 }
             }
-        }
 
-        return count;
+            return count;
         }
 
         private Vector3 GridToWorldPosition(int gridX, int gridY)

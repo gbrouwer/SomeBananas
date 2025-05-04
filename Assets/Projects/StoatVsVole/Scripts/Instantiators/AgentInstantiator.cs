@@ -36,6 +36,8 @@ namespace StoatVsVole
                 Debug.LogError("Agent prefab not found: " + config.agentPrefabName);
                 return null;
             }
+            bool wasActive = agentPrefab.activeSelf;
+            agentPrefab.SetActive(false);
 
             GameObject agentGO = Instantiate(agentPrefab, position, rotation);
             SetupBody(config, agentGO);
@@ -46,6 +48,7 @@ namespace StoatVsVole
             SetupBehaviorParameters(config, agentGO);
             SetupDecisionRequester(config, agentGO);
             SetupModelOverrider(config, agentGO);
+            agentGO.SetActive(true);
 
             // agentGO.transform.position = new Vector3(0, config.bodySettings.scaleY * 0.5f, 0); // TODO: Consider generalizing this ground offset.
             return agentGO;
