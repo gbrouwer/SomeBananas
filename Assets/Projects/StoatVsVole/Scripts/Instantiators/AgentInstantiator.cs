@@ -165,6 +165,13 @@ namespace StoatVsVole
                     }
                 }
             }
+
+            if (config.energyTransferSensorSettings != null && config.energyTransferSensorSettings.enabled)
+            {
+                AgentController agentController = agentGO.GetComponent<AgentController>();
+                agentController.detectEnergyTransfer = true;
+            }
+
         }
 
         private void SetupAgentController(AgentDefinition config, GameObject agentGO)
@@ -180,14 +187,14 @@ namespace StoatVsVole
                 agentController.energySinks = config.energySinks;
                 agentController.energySources = config.energySources;
                 agentController.agentType = config.agentType;
+                agentController.energyDrainRate = config.energyDrainRate;
 
             if (config.rewardSettings != null)
             {
-                agentController.longevityRewardPerStep = config.rewardSettings.longevityRewardPerStep;
+                agentController.longevityReward = config.rewardSettings.longevityReward;
                 agentController.expirationWithoutReplicationPenalty = config.rewardSettings.expirationWithoutReplicationPenalty;
                 agentController.replicationAward = config.rewardSettings.replicationAward;
-                agentController.lowEnergyPenaltyFactor = config.rewardSettings.lowEnergyPenaltyFactor;
-                agentController.energyDrainRate = config.rewardSettings.energyDrainRate;
+                agentController.lowEnergyPenalty = config.rewardSettings.lowEnergyPenalty;
             }
 
                 if (config.motionSettings != null)
@@ -198,7 +205,7 @@ namespace StoatVsVole
                 }
 
                 agentGO.tag = config.agentTag;
-                agentController.PrepareMaterialAndGradient(); 
+                AgentRenderer.PrepareMaterialAndGradient(agentController); 
             }
         }
 

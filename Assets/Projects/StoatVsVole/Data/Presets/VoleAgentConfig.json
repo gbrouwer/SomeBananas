@@ -5,17 +5,24 @@
   "agentPrefabName": "StoatVsVole/Prefabs/BaseAgent",
   "bodyPrefabName": "StoatVsVole/Prefabs/VoleBody",
   "sensorPrefabName": "StoatVsVole/Prefabs/VoleSensor",
-  "maxAge": 1000,
+  "maxAge": 1000.0,
   "replicationAge": 500,
-  "initialEnergy": 500.0,
-  "maxEnergy": 1000.0,
+  "initialEnergy": 100.0,
+  "maxEnergy": 200.0,
   "energyExchangeRate": 1.0,
+  "energyDrainRate": 0.5,
+  "rewardSettings": {
+    "longevityReward": 0.01,
+    "expirationWithoutReplicationPenalty": 0.0,
+    "energyExtractionAward": 0.01,
+    "replicationAward": 0.0,
+    "lowEnergyPenalty": 0.005
+  },
   "expirationCauses": [
     "age",
     "energy"
   ],
   "detectableTags": [
-    "vole",
     "stoat",
     "wall",
     "ground",
@@ -84,15 +91,11 @@
       "flower"
     ]
   },
-  "rewardSettings": {
-    "longevityRewardPerStep": 0.001,
-    "expirationWithoutReplicationPenalty": -1.0,
-    "replicationAward": 2.0,
-    "lowEnergyPenaltyFactor": 0.003,
-    "energyDrainRate": 1.0
+  "energyTransferSensorSettings": {
+    "enabled": true
   },
   "motionSettings": {
-    "agentRunSpeed": 3.0,
+    "agentRunSpeed": 2.0,
     "agentRotationSpeed": 200.0,
     "maxSpeed": 5.0
   },

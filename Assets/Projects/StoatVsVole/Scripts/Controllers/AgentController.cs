@@ -6,9 +6,7 @@ using System.Collections.Generic;
 
 namespace StoatVsVole
 {
-    /// <summary>
-    /// Interface for all lifecycle-based agents (Static or Dynamic).
-    /// </summary>
+
     public interface IAgentLifecycle
     {
         void SetAgentID(string id);
@@ -25,29 +23,8 @@ namespace StoatVsVole
         void ResetState();
     }
 
-    /// <summary>
-    /// Controls the lifecycle, energy management, and behavior of a single agent.
-    /// Integrates with Unity ML-Agents for training, and manages resource exchange logic.
-    /// </summary>
     public class AgentController : Agent, IAgentLifecycle
     {
-
-        [Header("Read Only Parameters for debugging")]
-        [SerializeField] private float debugEnergy;
-        [SerializeField] private float debugAge;
-        [SerializeField] private float debugNaxAge;
-        [SerializeField] private float debugMaxEnergy;
-        [SerializeField] private bool debugCanExpire;
-        [SerializeField] private bool debugCanExpireFromAge;
-        [SerializeField] private bool debugCanExpireFromEnergy;
-        [SerializeField] private bool debugIsActive;
-        [SerializeField] private bool debugIsExpired;
-        [SerializeField] private bool debugHasReplicated;
-        [SerializeField] private bool debugIsSuspended;
-        [SerializeField] private bool debugIsDynamic;
-
-        #region Fields and Settings
-
         [Header("Lifecycle Settings")]
         public AgentDefinition agentDefinition;
         public float energy;
@@ -60,27 +37,24 @@ namespace StoatVsVole
         private bool canExpireFromEnergy = false;
 
         [Header("Energy Settings")]
-        private float maxEnergy;
+        public float maxEnergy;
         private float energyExchangeRate;
         public List<string> detectableTags;
         public List<string> energySinks;
         public List<string> energySources;
-        private bool withEnergySource = false;
-        private bool withEnergySink = false;
+        public bool withEnergySource = false;
+        public bool withEnergySink = false;
         private Queue<EnergyRequest> incomingRequests = new Queue<EnergyRequest>();
         private Queue<EnergyRequest> outgoingRequests = new Queue<EnergyRequest>();
         private EnergyRequest activeIncomingRequest = null;
         private EnergyRequest activeOutgoingRequest = null;
         private AgentController targetResourceAgent;
-        private Gradient energyGradient;
-        private MaterialPropertyBlock propertyBlock;
 
         [Header("Agent Settings")]
         public string agentType;
         public string agentClass;
         public string agentTag;
         public string agentID;
-
         private Rigidbody rb;
         private bool isActive;
         private bool isExpired;
@@ -89,15 +63,18 @@ namespace StoatVsVole
         private bool isDynamic = false;
         private Collider agentCollider;
         private RayPerceptionSensorComponent3D[] sensors;
-        private AgentManager manager;
-        private Renderer bodyRenderer;
+        public AgentManager manager;
+        public Renderer bodyRenderer;
         private Material agentMaterialInstance;
+        public bool detectEnergyTransfer;
 
-        [Header("Debug Settings")]
+        [Header("Rendering Settings")]
+        public Gradient energyGradient;
+        public MaterialPropertyBlock propertyBlock;
         private Color originalColor;
         private Color triggeredColor = Color.yellow;
-        private FloatingLabel floatingLabel;
-        private string lastLabelText = "Test"; // Add this at the top inside Debugging region
+        public FloatingLabel floatingLabel;
+        public string lastLabelText;
 
         [Header("Motion Settings")]
         public float agentRunSpeed;
@@ -105,28 +82,50 @@ namespace StoatVsVole
         public float maxSpeed;
 
         [Header("Reward Settings")]
-        public float longevityRewardPerStep;
+        public float longevityReward;
         public float expirationWithoutReplicationPenalty;
+        public float energyExpirationPenalty;
+        public float energyExtractionAward;
         public float replicationAward;
         public float energyDrainRate;
-        public float lowEnergyPenaltyFactor;
+        public float lowEnergyPenalty;
 
+        public void Reward(string reason = "",float value = 0.0f)
+        {
+            switch (reason)
+            {
+                case "Longevity":
+                    AddReward(longevityReward * Time.fixedDeltaTime);
+                    break;
 
-        #endregion
+                case "LowEnergyPenalty":
+                    AddReward(-lowEnergyPenalty);
+                    break;
 
-        #region Unity Lifecycle Methods
+                case "Replication":
+                    AddReward(replicationAward);
+                    break;
 
-        /// <summary>
-        /// Unity Awake. Initializes core components.
-        /// </summary>
+                case "ExpirationWithoutReplication":
+                    AddReward(expirationWithoutReplicationPenalty);
+                    break;
+
+                case "EnergyExtraction":
+                    AddReward(value*energyExtractionAward); // could scale up with efficiency later
+                    break;
+
+                default:
+                    print("Unknown Reward");
+                    break;
+            }
+        }
+
         protected override void OnEnable()
         {
             if (agentType != "dynamic")
             {
-                print($"[OnEnable] Skipping ML-Agents registration for static agent: {name}");
-                return;  // Prevents base.Agent.OnEnable() from being called
+                return;
             }
-
             base.OnEnable();
         }
 
@@ -134,12 +133,19 @@ namespace StoatVsVole
         {
             if (agentType != "dynamic")
             {
-                print($"[OnDisable] Skipping ML cleanup for static agent: {name}");
                 return;
             }
 
             base.OnDisable();
         }
+
+        public void SafeEndEpisode()
+        {
+            if (agentType != "dynamic") return;
+            if (!isActive) return; 
+            EndEpisode();
+        }
+
         protected new void Awake()
         {
             rb = GetComponent<Rigidbody>();
@@ -147,22 +153,6 @@ namespace StoatVsVole
             sensors = GetComponentsInChildren<RayPerceptionSensorComponent3D>();
         }
 
-        // public override void Initialize()
-        // {
-        //     if (agentType != "dynamic")
-        //     {
-        //         print("Turning flower inactive");
-        //         // Prevent non-learning agents from initializing with ML-Agents
-        //         enabled = false;
-        //         return;
-        //     }
-
-        //     base.Initialize(); // only for voles, etc.
-        // }
-
-        /// <summary>
-        /// Unity Start. Initializes debug label.
-        /// </summary>
         void Start()
         {
             floatingLabel = GetComponentInChildren<FloatingLabel>();
@@ -171,9 +161,6 @@ namespace StoatVsVole
 
         }
 
-        /// <summary>
-        /// Unity FixedUpdate. Main simulation step: handles aging, expiration, energy interactions.
-        /// </summary>
         private void FixedUpdate()
         {
             if (!isActive)
@@ -181,7 +168,7 @@ namespace StoatVsVole
 
             HandleAging();
             HandleEnergy();
-            HandleLongevityReward();
+            Reward("Longevity",0.0f);
 
             if (targetResourceAgent == null || targetResourceAgent.IsExpired())
             {
@@ -201,42 +188,25 @@ namespace StoatVsVole
             HandleIncomingRequests();
         }
 
-        /// <summary>
-        /// Unity Update. (Currently unused.)
-        /// </summary>
         private void Update()
         {
-            UpdateLabel();
-            UpdateVisualState();
-            UpdateDebugValues();
-
+            AgentRenderer.UpdateLabel(this);
+            AgentRenderer.UpdateVisualState(this);
         }
 
-        #endregion
-
-        #region Initialization and Reset
-
-        /// <summary>
-        /// Initializes agent from a definition (typically loaded from JSON).
-        /// </summary>
         public void InitializeFromDefinition(AgentDefinition definition)
         {
             agentDefinition = definition;
             isDynamic = agentDefinition.agentType.ToLower() == "dynamic";
             ResetState();
-
             Renderer renderer = GetComponentInChildren<Renderer>();
             if (renderer != null)
             {
                 agentMaterialInstance = renderer.material;
                 originalColor = agentMaterialInstance.color;
             }
-
         }
 
-        /// <summary>
-        /// Resets internal state for respawn/reuse.
-        /// </summary>
         public void ResetState()
         {
             if (agentDefinition != null)
@@ -250,11 +220,10 @@ namespace StoatVsVole
 
                 // Lifecycle Settings
                 maxAge = agentDefinition.maxAge;
-
-                // lowEnergyPenaltyFactor = agentDefinition
                 replicationAge = agentDefinition.replicationAge;
                 canExpireFromAge = agentDefinition.canExpireFromAge;
                 canExpireFromEnergy = agentDefinition.canExpireFromEnergy;
+                energyDrainRate = agentDefinition.energyDrainRate;
 
                 // Motion Settings
                 agentTag = agentDefinition.agentTag;
@@ -265,11 +234,12 @@ namespace StoatVsVole
                 maxSpeed = agentDefinition.motionSettings.maxSpeed;
 
                 // Reward Settings
-                longevityRewardPerStep = agentDefinition.rewardSettings.longevityRewardPerStep;
+                longevityReward = agentDefinition.rewardSettings.longevityReward;
                 expirationWithoutReplicationPenalty = agentDefinition.rewardSettings.expirationWithoutReplicationPenalty;
+                energyExpirationPenalty = agentDefinition.rewardSettings.energyExpirationPenalty;
                 replicationAward = agentDefinition.rewardSettings.replicationAward;
-                energyDrainRate = agentDefinition.rewardSettings.energyDrainRate;
-                lowEnergyPenaltyFactor = agentDefinition.rewardSettings.lowEnergyPenaltyFactor;
+                lowEnergyPenalty = agentDefinition.rewardSettings.lowEnergyPenalty;
+                energyExtractionAward = agentDefinition.rewardSettings.energyExtractionAward;
             }
 
             age = 0f;
@@ -294,17 +264,10 @@ namespace StoatVsVole
             gameObject.tag = agentTag;
         }
 
-        /// <summary>
-        /// Sets manager reference for callbacks.
-        /// </summary>
         public void SetManager(AgentManager managerReference)
         {
             manager = managerReference;
         }
-
-        #endregion
-
-        #region Energy Management
 
         private void HandleOutgoingRequests()
         {
@@ -326,10 +289,7 @@ namespace StoatVsVole
                 {
                     energy += amountReceived;
                     energy = Mathf.Min(energy, maxEnergy);
-
-                    // ✅ Reward for successfully gaining energy
-                    AddReward(amountReceived * 0.5f);
-
+                    Reward("EnergyExtraction",amountReceived);
                     activeOutgoingRequest.provider.ConfirmEnergyTransfer(amountReceived);
                     activeOutgoingRequest.isCompleted = true;
                 }
@@ -337,7 +297,6 @@ namespace StoatVsVole
                 {
                     activeOutgoingRequest.isCancelled = true;
                 }
-
                 activeOutgoingRequest = null;
             }
         }
@@ -362,9 +321,6 @@ namespace StoatVsVole
             }
         }
 
-        /// <summary>
-        /// Request available energy (non-destructive until confirmed).
-        /// </summary>
         public float RequestEnergy(float amountRequested)
         {
             if (IsExpired())
@@ -373,9 +329,6 @@ namespace StoatVsVole
             return Mathf.Min(amountRequested, energy);
         }
 
-        /// <summary>
-        /// Confirm actual energy transfer (deducts energy).
-        /// </summary>
         public void ConfirmEnergyTransfer(float amountTransferred)
         {
             if (IsExpired())
@@ -388,10 +341,6 @@ namespace StoatVsVole
                 Expire();
             }
         }
-
-        #endregion
-
-        #region Collision Handling
 
         private void OnTriggerEnter(Collider other)
         {
@@ -445,10 +394,6 @@ namespace StoatVsVole
             }
         }
 
-        #endregion
-
-        #region ML-Agents Integration
-
         public override void OnActionReceived(ActionBuffers actionBuffers)
         {
             if (!isDynamic)
@@ -456,7 +401,6 @@ namespace StoatVsVole
 
             if (!isSuspended)
             {
-                print(actionBuffers.DiscreteActions);
                 MoveAgent(actionBuffers.DiscreteActions);
             }
         }
@@ -483,29 +427,20 @@ namespace StoatVsVole
 
         public override void CollectObservations(VectorSensor sensor)
         {
-            // if (!isDynamic)
-            // {
-            //     // Static agents (e.g., flowers) — no observations needed
-            //     sensor.AddObservation(0f);
-            //     return;
-            // }
+            if (sensor == null)
+                return;
 
-            // if (sensors == null || sensors.Length == 0)
-            // {
-            //     // Dynamic but no Ray Sensors found — fallback to dummy observation
-            //     sensor.AddObservation(0f);
-            //     Debug.LogWarning($"{gameObject.name}: Dynamic agent has no Ray Sensors attached! Added dummy observation.");
-            // }
-            // else
-            // {
-            //     // Dynamic agents with Ray Sensors — no manual observations needed
-            //     // Ray sensors automatically send their observations
-            // }
+            if (isDynamic == false)
+                return;
+
+            if (detectEnergyTransfer == true) {
+                print("Detection ON");
+            }
+
         }
 
         public override void OnEpisodeBegin()
         {
-            // TODO: Handle environment resets, agent reset, etc.
         }
 
         private void MoveAgent(ActionSegment<int> act)
@@ -513,6 +448,7 @@ namespace StoatVsVole
             var dirToGo = Vector3.zero;
             var rotateDir = Vector3.zero;
             var action = act[0];
+
             switch (action)
             {
                 case 1:
@@ -544,10 +480,6 @@ namespace StoatVsVole
             }
         }
 
-        #endregion
-
-        #region Lifecycle Management
-
         private void HandleAging()
         {
             age += Time.fixedDeltaTime * 30f;
@@ -570,16 +502,9 @@ namespace StoatVsVole
 
                 if (energyRatio < 0.5f)
                 {
-                    float penalty = lowEnergyPenaltyFactor;// (0.5f - energyRatio) * lowEnergyPenaltyFactor;
-                    AddReward(-penalty);
+                    Reward("LowEnergyPenalty",0.0f);
                 }
-
-                HandleLongevityReward();  // still dynamic-only
             }
-
-            // Debug info
-            debugEnergy = energy;
-            debugMaxEnergy = maxEnergy;
         }
 
         protected virtual bool CheckExpirationConditions()
@@ -607,23 +532,19 @@ namespace StoatVsVole
 
             if (!hasReplicated)
             {
-                AddReward(expirationWithoutReplicationPenalty);
+                Reward("ExpirationWithoutReplication",0.0f);
             }
-
+            SafeEndEpisode();
             manager.OnExpired(this);
         }
 
         public void Replicate()
         {
             hasReplicated = true;
-            AddReward(replicationAward);  // ✅ Add this
+            Reward("Replication",0.0f);  // ✅ Add this
             manager.OnReplicated(this);
         }
 
-        protected virtual void HandleLongevityReward()
-        {
-            AddReward(longevityRewardPerStep * Time.fixedDeltaTime);
-        }
 
         protected void Suspend()
         {
@@ -651,10 +572,6 @@ namespace StoatVsVole
             gameObject.tag = "Untagged";
         }
 
-        #endregion
-
-        #region IAgentLifecycle API
-
         public void SetAgentID(string id) => agentID = id;
         public string GetAgentID() => agentID;
         public string GetAgentClass() => agentClass;
@@ -664,155 +581,15 @@ namespace StoatVsVole
         public bool IsSuspended() => isSuspended;
         public bool IsDynamic() => isDynamic;
         public bool HasReplicated() => hasReplicated;
-
         public void RandomizeMaxAge(float standardDeviation)
         {
             float randomized = Utils.RandomNormal(maxAge, standardDeviation);
             maxAge = Mathf.Max(1f, randomized);
         }
-
         public void RandomizeReplicationAge(float standardDeviation)
         {
             float randomized = Utils.RandomNormal(replicationAge, standardDeviation);
             replicationAge = Mathf.Max(1f, randomized);
-        }
-
-        #endregion
-
-        #region Debugging
-
-        private void UpdateVisualState()
-        {
-            if (bodyRenderer == null)
-                return;
-
-            float ratio = Mathf.Clamp01(energy / maxEnergy);
-            Color energyColor;
-
-            if (CompareTag("vole"))
-            {
-                if (ratio < 0.5f)
-                {
-                    energyColor = Color.Lerp(Color.red, Color.green, ratio * 2f);
-                }
-                else
-                {
-                    energyColor = Color.Lerp(Color.green, Color.yellow, (ratio - 0.5f) * 2f);
-                }
-            }
-            else if (CompareTag("flower"))
-            {
-                energyColor = Color.Lerp(Color.red, Color.white, ratio);
-            }
-            else
-            {
-                energyColor = Color.Lerp(Color.gray, Color.white, ratio);
-            }
-
-            if (propertyBlock == null)
-                propertyBlock = new MaterialPropertyBlock();
-
-            bodyRenderer.GetPropertyBlock(propertyBlock);
-            propertyBlock.SetColor("_BaseColor", energyColor);  // ✅ Works with URP Lit
-            bodyRenderer.SetPropertyBlock(propertyBlock);
-        }
-
-
-        private void UpdateLabel()
-        {
-            if (floatingLabel != null && manager.globalSettings.labelList.Contains(agentTag))
-            {
-                string labelText = $"{agentTag}\nEnergy: {energy:F1}";
-
-                if (withEnergySource)
-                    labelText += "\nExtracting";
-
-                if (withEnergySink)
-                    labelText += "\nBeing Drained";
-
-                // ➕ Add reward display
-                labelText += $"\nReward: {GetCumulativeReward():F2}";
-
-                floatingLabel.SetLabel(
-                    labelText,
-                    Color.white,
-                    4.0f,
-                    new Vector3(0, agentDefinition.bodySettings.scaleY + 0.25f, 0)
-                );
-
-                lastLabelText = labelText;
-            }
-            else
-            {
-                floatingLabel.SetLabel("", Color.white, 4.0f, new Vector3(0, agentDefinition.bodySettings.scaleY + 0.25f, 0));
-            }
-
-        }
-        #endregion
-
-
-
-        private void UpdateDebugValues()
-        {
-            debugEnergy = energy;
-            debugAge = age;
-            debugHasReplicated = hasReplicated;
-        }
-
-
-        private void SetupEnergyGradientBasedOnTag()
-        {
-            energyGradient = new Gradient(); // ← This must happen per-agent
-
-            GradientColorKey[] colorKeys;
-            GradientAlphaKey[] alphaKeys;
-
-            if (CompareTag("vole"))
-            {
-                colorKeys = new GradientColorKey[]
-                {
-                new GradientColorKey(Color.blue, 0f),
-                new GradientColorKey(Color.magenta, 1f)
-                };
-            }
-            else if (CompareTag("flower"))
-            {
-                colorKeys = new GradientColorKey[]
-                {
-                    new GradientColorKey(Color.blue, 0f),
-                    new GradientColorKey(Color.yellow, 1f)
-                };
-            }
-            else
-            {
-                colorKeys = new GradientColorKey[]
-                {
-                    new GradientColorKey(Color.gray, 0f),
-                    new GradientColorKey(Color.white, 1f)
-                };
-            }
-
-            alphaKeys = new GradientAlphaKey[]
-            {
-                new GradientAlphaKey(1f, 0f),
-                new GradientAlphaKey(1f, 1f)
-            };
-
-            energyGradient.SetKeys(colorKeys, alphaKeys);
-        }
-
-        public void PrepareMaterialAndGradient()
-        {
-            bodyRenderer = GetComponentInChildren<Renderer>();
-
-            if (bodyRenderer != null)
-            {
-                if (propertyBlock == null)
-                    propertyBlock = new MaterialPropertyBlock();
-
-                SetupEnergyGradientBasedOnTag();
-                UpdateVisualState();  // This now uses the property block
-            }
         }
 
     }

@@ -66,6 +66,9 @@ namespace StoatVsVole
             LoadAgentDefinition();
             CreateAgentPool();
             SpawnInitialAgents();
+            Time.timeScale = globalSettings.timeScale;
+            Time.fixedDeltaTime = 0.02f * globalSettings.timeScale;
+
         }
         /// <summary>
         /// Unity Update. Continuously updates mean age and replication metrics.

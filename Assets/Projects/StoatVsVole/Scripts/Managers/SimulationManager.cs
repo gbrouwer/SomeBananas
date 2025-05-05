@@ -8,54 +8,47 @@ namespace StoatVsVole
     {
         [Header("Dynamic Agent Managers")]
         public List<AgentManager> dynamicManagers;
+        public GlobalSettings globalSettings;
 
         [Header("Reset Options")]
         public float checkInterval = 1.0f;
         private float timeSinceLastCheck = 0f;
+        private int iterationStep = 0;
+        void Start() {
 
-    private void Start()
-    {
-        print("SimulationManager: Scanning for active ML-Agents at startup...");
+            globalSettings = FindAnyObjectByType<GlobalSettings>();
+            iterationStep = 0;
 
-        var agents = FindObjectsByType<Unity.MLAgents.Agent>(FindObjectsSortMode.None);
-
-        foreach (var agent in agents)
+        }
+        private void Update()
         {
-            if (!agent.gameObject.activeInHierarchy)
-                continue;
+            if (dynamicManagers == null || dynamicManagers.Count == 0)
+                return;  // 🔒 Skip extinction logic until managers are registered
 
-            var bp = agent.GetComponent<BehaviorParameters>();
-            if (bp != null)
+            iterationStep++;
+            if (iterationStep >= globalSettings.nIterationsPerEpisode)
             {
-                print($"[Startup] Found ACTIVE agent: {agent.name}, behavior = {bp.BehaviorName}");
+                print("SimulationManager: Out of Iterations. Resetting simulation.");
+                EndEpisodeForAll();
+                iterationStep = 0;
+                RestartAllManagers();
+            }
+
+            timeSinceLastCheck += Time.deltaTime;
+            if (timeSinceLastCheck >= checkInterval)
+            {
+                timeSinceLastCheck = 0f;
+                if (AllDynamicAgentsAreDead())
+                {
+                    print("SimulationManager: All dynamic agents are extinct. Resetting simulation.");
+                    EndEpisodeForAll();
+                    RestartAllManagers();
+                }
+                else
+                {
+                }
             }
         }
-    }
-
-private void Update()
-{
-    if (dynamicManagers == null || dynamicManagers.Count == 0)
-        return;  // 🔒 Skip extinction logic until managers are registered
-
-    timeSinceLastCheck += Time.deltaTime;
-
-    if (timeSinceLastCheck >= checkInterval)
-    {
-        timeSinceLastCheck = 0f;
-        print("SimulationManager: Checking for extinction...");
-
-        if (AllDynamicAgentsAreDead())
-        {
-            print("SimulationManager: All dynamic agents are extinct. Resetting simulation.");
-            EndEpisodeForAll();
-            RestartAllManagers();
-        }
-        else
-        {
-            print("SimulationManager: Dynamic agents still active.");
-        }
-    }
-}
         private bool AllDynamicAgentsAreDead()
         {
             foreach (var manager in dynamicManagers)
@@ -67,7 +60,6 @@ private void Update()
                     return false;
                 }
             }
-            print("SimulationManager: No active dynamic agents found.");
             return true;
         }
 
@@ -78,7 +70,6 @@ private void Update()
             {
                 foreach (var agent in manager.activeAgents)
                 {
-                    print($"SimulationManager: Ending episode for active agent {agent.GetAgentID()}.");
                     var agentController = agent as AgentController;
                     if (agentController != null)
                     {
@@ -103,7 +94,6 @@ private void Update()
             print("SimulationManager: Restarting all dynamic agent managers.");
             foreach (var manager in dynamicManagers)
             {
-                print($"SimulationManager: Restarting manager {manager.name}.");
                 manager.Restart();
             }
         }

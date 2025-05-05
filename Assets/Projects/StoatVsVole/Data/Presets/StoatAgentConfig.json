@@ -5,11 +5,12 @@
   "agentPrefabName": "StoatVsVole/Prefabs/BaseAgent",
   "bodyPrefabName": "StoatVsVole/Prefabs/BaseBody",
   "sensorPrefabName": "StoatVsVole/Prefabs/BaseSensor",
+  "maxAge": 50000.0,
+  "replicationAge": 250,
   "initialEnergy": 100.0,
   "maxEnergy": 200.0,
   "energyExchangeRate": 1.0,
-  "maxAge": 50000.0,
-  "replicationAge": 250,
+  "energyDrainRate": 0.5,
   "expirationCauses": [
     "age",
     "energy"
@@ -83,10 +84,10 @@
     ]
   },
   "rewardSettings": {
-    "longevityRewardPerStep": 0.001,
+    "longevityReward": 0.001,
     "expirationWithoutReplicationPenalty": -1.0,
     "replicationAward": 2.0,
-    "lowEnergyPenaltyFactor": 0.3,
+    "lowEnergyPenalty": 0.3,
     "energyDrainRate": 50.0
   },
   "motionSettings": {

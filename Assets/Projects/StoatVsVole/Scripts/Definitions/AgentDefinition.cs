@@ -32,12 +32,14 @@ namespace StoatVsVole
         public float maxEnergy;
         public float energyExchangeRate;
         public float initialEnergy;
+        public float energyDrainRate;
 
         // Tagging and Sensing
         public string agentTag;
         public List<string> detectableTags;
         public List<string> energySources;
         public List<string> energySinks;
+        public bool detectEnergyTransfer;
 
         // Components and Behavior Settings
         public RigidbodySettings rigidbodySettings;
@@ -46,6 +48,7 @@ namespace StoatVsVole
         public BehaviorParameterSettings behaviorParameterSettings;
         public DecisionRequesterSettings decisionRequesterSettings;
         public RaySensorSettings raySensorSettings;
+        public EnergyTransferSensorSettings energyTransferSensorSettings;
         public RewardSettings rewardSettings;
         public MotionSettings motionSettings;
         public ModelOverriderSettings modelOverriderSettings;
@@ -135,6 +138,12 @@ namespace StoatVsVole
         public float endVerticalOffset;
     }
 
+    [Serializable]
+    public class EnergyTransferSensorSettings
+    {
+        public bool enabled;
+    }    
+
     /// <summary>
     /// Settings for the agent's basic movement capabilities.
     /// </summary>
@@ -152,11 +161,12 @@ namespace StoatVsVole
     [Serializable]
     public class RewardSettings
     {
-        public float longevityRewardPerStep = 0.01f;
+        public float longevityReward = 0.01f;
         public float expirationWithoutReplicationPenalty = -1.0f;
+        public float energyExpirationPenalty = -1.0f;
         public float replicationAward = 2.0f;
-        public float lowEnergyPenaltyFactor = 0.3f;  // ✅ new field
-        public float energyDrainRate = 50.0f;
+        public float energyExtractionAward = 1.0f;
+        public float lowEnergyPenalty = 0.3f;  // ✅ new field
     }
 
     /// <summary>

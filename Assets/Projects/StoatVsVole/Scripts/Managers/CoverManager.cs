@@ -325,7 +325,6 @@ namespace StoatVsVole
                     }
                 }
             }
-            Debug.LogWarning($"GroundCoverManager: Tried to remove agent {agentID} but it wasn't found.");
         }
 
         #endregion
